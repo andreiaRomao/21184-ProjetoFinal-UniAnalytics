@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  moodle:
+    image: moodle:latest
+    container_name: moodle
+    platform: linux/amd64
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - MOODLE_DB_TYPE=mysqli
+      - MOODLE_DB_HOST=db
+      - MOODLE_DB_NAME=moodle
+      - MOODLE_DB_USER=moodle
+      - MOODLE_DB_PASSWORD=moodlepassword
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - moodle_data:/var/www/html
+
+  db:
+    image: mysql:8.0  # Versão compatível com o Moodle
+    container_name: moodle_db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=moodle
+      - MYSQL_USER=moodle
+      - MYSQL_PASSWORD=moodlepassword
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  moodle_data:
+  db_data:
+
