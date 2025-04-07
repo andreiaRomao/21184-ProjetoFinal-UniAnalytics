@@ -1,0 +1,18 @@
+\core_user\analytics\indicator\user_profile_set
+
+logs não é aplicavel
+
+(com as tabelas)
+SELECT description, picture, institution, department, address, city, country
+FROM mdl_user
+WHERE id = :userid;"
+
+
+\core_user\analytics\indicator\user_track_forums
+
+logs não é aplicavel
+
+(com as tabelas)
+"SELECT trackforums
+FROM mdl_user
+WHERE id = :userid;"

@@ -1,0 +1,155 @@
+Os níveis de cognitive e social são valores numéricos que refletem, respetivamente, a profundidade do envolvimento cognitivo e a amplitude da interação social esperada numa atividade. 
+Em termos práticos:
+Níveis Cognitivos:
+Indicam o grau de complexidade, análise e pensamento crítico que uma atividade pode exigir. Por exemplo, um nível cognitivo mais elevado (como 4 ou 5) sugere que a atividade estimula 
+processos de pensamento de ordem superior, enquanto um nível mais baixo indica tarefas mais simples ou rotineiras.
+Níveis Sociais:
+Representam a dimensão de interação e colaboração entre os participantes. Níveis sociais mais altos implicam uma maior expectativa de participação, troca de ideias e colaboração, 
+enquanto níveis mais baixos podem refletir atividades com menos interação.
+
+Esses números funcionam como pesos nos modelos preditivos, permitindo ao sistema avaliar, por exemplo, o impacto das atividades no sucesso ou no envolvimento dos alunos. 
+Cada tipo de atividade pode ter um valor pré-definido (como SOCIAL_LEVEL_2 ou COGNITIVE_LEVEL_4), o que ajuda a calibrar os modelos e a identificar padrões de aprendizagem.
+
+
+\mod_assign\analytics\indicator\cognitive_depth
+
+SELECT COUNT(*)
+FROM mdl_logstore_standard_log
+WHERE eventname = '\mod_assign\event\assessable_submitted'
+  AND ... -- filtros adicionais (ex.: userid, context, etc.)
+
+(com as tabelas)
+Não é possivel
+
+
+\mod_assign\analytics\indicator\social_breadth
+
+não há consultas SQL nem cálculos dinâmicos – a função get_social_breadth_level() simplesmente retorna uma constante, definida como SOCIAL_LEVEL_2. 
+Isso significa que, para o módulo assign, o indicador de "social breadth" assume sempre esse valor fixo, 
+refletindo uma avaliação pré-definida da dimensão social associada a essa atividade.
+
+\mod_bigbluebuttonbn\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_bigbluebuttonbn\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_book\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_book\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_chat\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_chat\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_choice\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_choice\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_data\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_data\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_feedback\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_feedback\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_folder\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_folder\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_forum\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_forum\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_glossary\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_glossary\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_imscp\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_imscp\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_label\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_label\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_lesson\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_lesson\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_lti\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_lti\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_page\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_page\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_quiz\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_quiz\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_resource\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_resource\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_scorm\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_scorm\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_survey\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_survey\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_url\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_url\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_wiki\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_wiki\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_workshop\analytics\indicator\cognitive_depth
+Não utiliza queries – o método retorna sempre um valor fixo.
+
+\mod_workshop\analytics\indicator\social_breadth
+Não utiliza queries – o método retorna sempre um valor fixo.

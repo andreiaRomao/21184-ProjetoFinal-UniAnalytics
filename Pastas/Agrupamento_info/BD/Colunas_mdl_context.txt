@@ -1,0 +1,11 @@
+mysql> SHOW COLUMNS FROM mdl_context;
++--------------+--------------+------+-----+---------+----------------+
+| Field        | Type         | Null | Key | Default | Extra          |
++--------------+--------------+------+-----+---------+----------------+
+| id           | bigint       | NO   | PRI | NULL    | auto_increment |
+| contextlevel | bigint       | NO   | MUL | 0       |                |
+| instanceid   | bigint       | NO   | MUL | 0       |                |
+| path         | varchar(255) | YES  | MUL | NULL    |                |
+| depth        | tinyint      | NO   |     | 0       |                |
+| locked       | tinyint      | NO   |     | 0       |                |
++--------------+--------------+------+-----+---------+----------------+

@@ -1,0 +1,28 @@
+mysql> SHOW COLUMNS FROM mdl_grade_grades;
++-------------------+---------------+------+-----+-----------+----------------+
+| Field             | Type          | Null | Key | Default   | Extra          |
++-------------------+---------------+------+-----+-----------+----------------+
+| id                | bigint        | NO   | PRI | NULL      | auto_increment |
+| itemid            | bigint        | NO   | MUL | NULL      |                |
+| userid            | bigint        | NO   | MUL | NULL      |                |
+| rawgrade          | decimal(10,5) | YES  |     | NULL      |                |
+| rawgrademax       | decimal(10,5) | NO   |     | 100.00000 |                |
+| rawgrademin       | decimal(10,5) | NO   |     | 0.00000   |                |
+| rawscaleid        | bigint        | YES  | MUL | NULL      |                |
+| usermodified      | bigint        | YES  | MUL | NULL      |                |
+| finalgrade        | decimal(10,5) | YES  |     | NULL      |                |
+| hidden            | bigint        | NO   |     | 0         |                |
+| locked            | bigint        | NO   | MUL | 0         |                |
+| locktime          | bigint        | NO   |     | 0         |                |
+| exported          | bigint        | NO   |     | 0         |                |
+| overridden        | bigint        | NO   |     | 0         |                |
+| excluded          | bigint        | NO   |     | 0         |                |
+| feedback          | longtext      | YES  |     | NULL      |                |
+| feedbackformat    | bigint        | NO   |     | 0         |                |
+| information       | longtext      | YES  |     | NULL      |                |
+| informationformat | bigint        | NO   |     | 0         |                |
+| timecreated       | bigint        | YES  |     | NULL      |                |
+| timemodified      | bigint        | YES  |     | NULL      |                |
+| aggregationstatus | varchar(10)   | NO   |     | unknown   |                |
+| aggregationweight | decimal(10,5) | YES  |     | NULL      |                |
++-------------------+---------------+------+-----+-----------+----------------+

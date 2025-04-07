@@ -1,0 +1,40 @@
+mysql> SHOW COLUMNS FROM mdl_enrol;
++-----------------+---------------+------+-----+---------+----------------+
+| Field           | Type          | Null | Key | Default | Extra          |
++-----------------+---------------+------+-----+---------+----------------+
+| id              | bigint        | NO   | PRI | NULL    | auto_increment |
+| enrol           | varchar(20)   | NO   | MUL |         |                |
+| status          | bigint        | NO   |     | 0       |                |
+| courseid        | bigint        | NO   | MUL | NULL    |                |
+| sortorder       | bigint        | NO   |     | 0       |                |
+| name            | varchar(255)  | YES  |     | NULL    |                |
+| enrolperiod     | bigint        | YES  |     | 0       |                |
+| enrolstartdate  | bigint        | YES  |     | 0       |                |
+| enrolenddate    | bigint        | YES  |     | 0       |                |
+| expirynotify    | tinyint(1)    | YES  |     | 0       |                |
+| expirythreshold | bigint        | YES  |     | 0       |                |
+| notifyall       | tinyint(1)    | YES  |     | 0       |                |
+| password        | varchar(50)   | YES  |     | NULL    |                |
+| cost            | varchar(20)   | YES  |     | NULL    |                |
+| currency        | varchar(3)    | YES  |     | NULL    |                |
+| roleid          | bigint        | YES  | MUL | 0       |                |
+| customint1      | bigint        | YES  |     | NULL    |                |
+| customint2      | bigint        | YES  |     | NULL    |                |
+| customint3      | bigint        | YES  |     | NULL    |                |
+| customint4      | bigint        | YES  |     | NULL    |                |
+| customint5      | bigint        | YES  |     | NULL    |                |
+| customint6      | bigint        | YES  |     | NULL    |                |
+| customint7      | bigint        | YES  |     | NULL    |                |
+| customint8      | bigint        | YES  |     | NULL    |                |
+| customchar1     | varchar(255)  | YES  |     | NULL    |                |
+| customchar2     | varchar(255)  | YES  |     | NULL    |                |
+| customchar3     | varchar(1333) | YES  |     | NULL    |                |
+| customdec1      | decimal(12,7) | YES  |     | NULL    |                |
+| customdec2      | decimal(12,7) | YES  |     | NULL    |                |
+| customtext1     | longtext      | YES  |     | NULL    |                |
+| customtext2     | longtext      | YES  |     | NULL    |                |
+| customtext3     | longtext      | YES  |     | NULL    |                |
+| customtext4     | longtext      | YES  |     | NULL    |                |
+| timecreated     | bigint        | NO   |     | 0       |                |
+| timemodified    | bigint        | NO   |     | 0       |                |
++-----------------+---------------+------+-----+---------+----------------+

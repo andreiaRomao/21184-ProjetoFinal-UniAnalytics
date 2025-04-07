@@ -1,0 +1,14 @@
+mysql> SHOW COLUMNS FROM mdl_role_assignments;
++--------------+--------------+------+-----+---------+----------------+
+| Field        | Type         | Null | Key | Default | Extra          |
++--------------+--------------+------+-----+---------+----------------+
+| id           | bigint       | NO   | PRI | NULL    | auto_increment |
+| roleid       | bigint       | NO   | MUL | 0       |                |
+| contextid    | bigint       | NO   | MUL | 0       |                |
+| userid       | bigint       | NO   | MUL | 0       |                |
+| timemodified | bigint       | NO   |     | 0       |                |
+| modifierid   | bigint       | NO   |     | 0       |                |
+| component    | varchar(100) | NO   | MUL |         |                |
+| itemid       | bigint       | NO   |     | 0       |                |
+| sortorder    | bigint       | NO   | MUL | 0       |                |
++--------------+--------------+------+-----+---------+----------------+

@@ -1,0 +1,14 @@
+mysql> SHOW COLUMNS FROM mdl_user_enrolments;
++--------------+--------+------+-----+------------+----------------+
+| Field        | Type   | Null | Key | Default    | Extra          |
++--------------+--------+------+-----+------------+----------------+
+| id           | bigint | NO   | PRI | NULL       | auto_increment |
+| status       | bigint | NO   |     | 0          |                |
+| enrolid      | bigint | NO   | MUL | NULL       |                |
+| userid       | bigint | NO   | MUL | NULL       |                |
+| timestart    | bigint | NO   |     | 0          |                |
+| timeend      | bigint | NO   |     | 2147483647 |                |
+| modifierid   | bigint | NO   | MUL | 0          |                |
+| timecreated  | bigint | NO   |     | 0          |                |
+| timemodified | bigint | NO   |     | 0          |                |
++--------------+--------+------+-----+------------+----------------+

@@ -1,0 +1,26 @@
+mysql> SHOW COLUMNS FROM mdl_logstore_standard_log;
++-------------------+--------------+------+-----+---------+----------------+
+| Field             | Type         | Null | Key | Default | Extra          |
++-------------------+--------------+------+-----+---------+----------------+
+| id                | bigint       | NO   | PRI | NULL    | auto_increment |
+| eventname         | varchar(255) | NO   |     |         |                |
+| component         | varchar(100) | NO   |     |         |                |
+| action            | varchar(100) | NO   |     |         |                |
+| target            | varchar(100) | NO   |     |         |                |
+| objecttable       | varchar(50)  | YES  |     | NULL    |                |
+| objectid          | bigint       | YES  |     | NULL    |                |
+| crud              | varchar(1)   | NO   |     |         |                |
+| edulevel          | tinyint(1)   | NO   |     | NULL    |                |
+| contextid         | bigint       | NO   | MUL | NULL    |                |
+| contextlevel      | bigint       | NO   |     | NULL    |                |
+| contextinstanceid | bigint       | NO   |     | NULL    |                |
+| userid            | bigint       | NO   | MUL | NULL    |                |
+| courseid          | bigint       | YES  | MUL | NULL    |                |
+| relateduserid     | bigint       | YES  | MUL | NULL    |                |
+| anonymous         | tinyint(1)   | NO   |     | 0       |                |
+| other             | longtext     | YES  |     | NULL    |                |
+| timecreated       | bigint       | NO   | MUL | NULL    |                |
+| origin            | varchar(10)  | YES  |     | NULL    |                |
+| ip                | varchar(45)  | YES  |     | NULL    |                |
+| realuserid        | bigint       | YES  | MUL | NULL    |                |
++-------------------+--------------+------+-----+---------+----------------+
