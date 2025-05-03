@@ -1,2 +1,0 @@
-completiontimespent,mod_lesson
-grade,mod_lesson
