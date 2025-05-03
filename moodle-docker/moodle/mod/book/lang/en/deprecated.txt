@@ -1,3 +1,0 @@
-navimages,mod_book
-navtext,mod_book
-navtoc,mod_book
