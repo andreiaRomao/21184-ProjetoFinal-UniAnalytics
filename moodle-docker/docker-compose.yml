@@ -17,6 +17,21 @@ services:
       - MOODLE_DOCKER_DBUSER=moodle
       - MOODLE_DOCKER_DBPASS=moodle
 
+  uni-analytics:
+    build:
+      context: ./uni-analytics
+    volumes:
+      - ./uni-analytics:/app
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_NAME=moodle
+      - DB_USER=moodle
+      - DB_PASS=moodle
+    command: ["python", "main.py"]
+    ports:
+      - "8050:8050"
   db:
     image: mysql:8.0
     restart: always
