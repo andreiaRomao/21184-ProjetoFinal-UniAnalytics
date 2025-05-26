@@ -1,6 +1,39 @@
-from queries.geral import fetch_user_course_data
-from dashboards.geral import create_dashboard
+import dash
+from dash import html, dcc
+from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
 
-if __name__ == "__main__":
-    data = fetch_user_course_data()
-    create_dashboard(data)
+app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app.title = "Learning Analytics"
+server = app.server
+
+app.layout = html.Div([
+    dcc.Location(id='url'),
+    html.Div(id='page-content')
+])
+
+@app.callback(
+    dash.dependencies.Output('page-content', 'children'),
+    [dash.dependencies.Input('url', 'pathname')]
+)
+def display_page(pathname):
+    print("Path recebido:", pathname)  # Para diagnóstico no terminal
+    if pathname == "/" or pathname == "/home":
+        return html.Div([
+            html.H1("Bem-vindo ao Dashboard de Learning Analytics"),
+            html.Div([
+                dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"})
+            ])
+        ])
+    elif pathname == "/dashboards/dashboardGeral":
+        return dashboardGeral.layout()
+    elif pathname == "/dashboards/dashboardAluno":
+        return dashboardAluno.layout()
+    elif pathname == "/dashboards/dashboardProfessor":
+        return dashboardProfessor.layout()
+    return html.Div("Página não encontrada")
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host="0.0.0.0", port=8050)
