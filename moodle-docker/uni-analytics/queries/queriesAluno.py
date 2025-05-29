@@ -1,5 +1,5 @@
 import pandas as pd
-from db.connection import connect_to_moodle_db
+from db.moodleConnection import connect_to_moodle_db
 
 def fetch_user_course_avaliation(aluno_id, course_id):
     conn = connect_to_moodle_db()

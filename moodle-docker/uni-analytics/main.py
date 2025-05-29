@@ -1,6 +1,7 @@
 import dash
 from dash import html, dcc
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
+from forms import formularioAluno
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Learning Analytics"
@@ -36,8 +37,11 @@ def display_page(pathname):
         return dashboardAluno.layout(aluno_id, course_id)
     elif pathname == "/dashboards/dashboardProfessor":
         return dashboardProfessor.layout()
+    elif pathname == "/forms/formularioAluno":
+        return formularioAluno.layout()
     return html.Div("Página não encontrada")
 
 
 if __name__ == '__main__':
+    formularioAluno.register_callbacks(app)
     app.run(debug=True, host="0.0.0.0", port=8050)

@@ -1,8 +1,17 @@
-FROM python:3.11-slim
+# Usa a imagem completa do Python
+FROM python:3.11
 
+# Define a pasta de trabalho dentro do container
 WORKDIR /app
+
+# Copia o ficheiro de dependências
 COPY requirements.txt .
+
+# Instala tudo com pip
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia o resto do código
 COPY . .
 
+# Comando para correr a aplicação
 CMD ["python", "main.py"]
