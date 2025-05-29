@@ -17,6 +17,10 @@ app.layout = html.Div([
 )
 def display_page(pathname):
     print("Path recebido:", pathname)  # Para diagnóstico no terminal
+    # Valores fixos temporários para simulação
+    aluno_id = 105
+    course_id = 2
+
     if pathname == "/" or pathname == "/home":
         return html.Div([
             html.H1("Bem-vindo ao Dashboard de Learning Analytics"),
@@ -29,7 +33,7 @@ def display_page(pathname):
     elif pathname == "/dashboards/dashboardGeral":
         return dashboardGeral.layout()
     elif pathname == "/dashboards/dashboardAluno":
-        return dashboardAluno.layout()
+        return dashboardAluno.layout(aluno_id, course_id)
     elif pathname == "/dashboards/dashboardProfessor":
         return dashboardProfessor.layout()
     return html.Div("Página não encontrada")

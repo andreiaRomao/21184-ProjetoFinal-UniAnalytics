@@ -23,7 +23,7 @@ body {
 
 .card-title {
     font-size: 28px;
-    font-weight: 600;
+    font-weight: bold;
     color: #2c3e50;
     text-align: center;
     margin-bottom: 30px;
@@ -31,4 +31,300 @@ body {
 
 .plotly-graph {
     height: auto;
+}
+
+
+/* ===============================
+   GRID DO DASHBOARD DO ALUNO
+   =============================== */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 32px; 
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f4faf4;
+}
+
+/* Coluna da esquerda (progresso, mensagens, interação) */
+.dashboard-grid .coluna-esquerda {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+/* Card dentro da coluna da esquerda */
+.dashboard-grid .coluna-esquerda > .card {
+    flex: 1;
+}
+
+/* Coluna da direita (gauge + desempenho) */
+.coluna-direita {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 24px;
+}
+
+/* ===============================
+   SECÇÕES INTERNAS COM TÍTULOS
+   =============================== */
+
+.card-section-title,
+.card-title,
+.card-forum h4,
+.card-volume h4,
+.card-gauge h4,
+.card-desempenho h4 {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 8px;
+    padding: 0;
+    text-align: center;
+}
+
+/* ===============================
+    DASHBOARD ALUNO
+    BARRAS DE PROGRESSO PERSONALIZADAS
+   =============================== */
+
+/* Container de cada barra (inclui título e barra visual) */
+.barra-container {
+    margin-bottom: 18px;
+}
+
+/* Nome da atividade (ex: Avaliação, Quizz) */
+.barra-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+/* Fundo cinzento da barra */
+.barra-fundo {
+    background-color: #e6e6e6;
+    border-radius: 20px;
+    height: 14px;
+    position: relative;
+}
+
+/* Parte colorida da barra (largura dinâmica via style no Python) */
+.barra-progresso {
+    height: 100%;
+    border-radius: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: width 0.5s ease;
+}
+
+/* Percentagem que aparece dentro da barra, alinhada à direita */
+.barra-texto {
+    position: absolute;
+    right: 8px;
+    top: -4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+}
+
+.card-progresso {
+    padding: 20px 30px 16px 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: fit-content; 
+}
+
+/* ===============================
+   MENSAGENS DO FÓRUM (BLOCO)
+   =============================== */
+
+/* Card específico para o bloco de mensagens do fórum */
+.card-forum {
+    width: 250px;                          /* Largura fixa do bloco */
+    display: flex;
+    flex-direction: column;               /* Elementos empilhados */
+    align-items: center;                  /* Centralizar conteúdo horizontalmente */  	
+    min-height: 360px;
+}
+
+/* Container das caixas de criados e respondidos */
+.forum-box {
+    width: 100%;                          /* Ocupa toda a largura do card */
+    display: flex;
+    flex-direction: column;               /* Empilha os blocos */
+    gap: 15px; 
+    margin-top: 8px;                            /* Espaço entre os blocos */
+}
+
+/* Estilo comum para os blocos de mensagens (criadas e respondidas) */
+.forum-created-box,
+.forum-replied-box {
+    background-color: #7cc3ac;            /* Verde base */
+    border-radius: 12px;                  /* Cantos arredondados */
+    padding: 20px 10px;                   /* Espaçamento interno */
+    color: white;                        
+    text-align: center;                   /* Alinhamento central do texto */
+    display: flex;
+    flex-direction: column;               /* Empilha ícone, label e número */
+    align-items: center;
+}
+
+/* Cor de fundo específica para o bloco de respostas */
+.forum-replied-box {
+    background-color: #a4dfc1;            /* Verde mais claro */
+}
+
+/* Ícone no topo de cada bloco*/
+.forum-icon {
+    width: 36px;                          /* Tamanho do ícone */
+    margin-bottom: 10px;                  /* Espaço abaixo do ícone */
+}
+
+/* Texto “Criados” ou “Respondidos” */
+.forum-label {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Número de mensagens */
+.forum-number {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* ===============================
+   VOLUME DE INTERAÇÃO
+   =============================== */
+
+/* Card específico para o bloco de volume de interação */
+.card-volume {
+    width: 250px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: fit-content;
+}
+
+
+/* Lista dos itens (ficheiros, páginas, links) */
+.volume-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Cada item da lista de interação */
+.volume-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-bottom: 1px solid #ddd;
+    padding: 8px 0;
+    font-size: 16px;
+}
+
+/* Número de interações (ex: 50 ficheiros) */
+.volume-number {
+    font-weight: bold;
+}
+
+/* Container do ícone com fundo arredondado */
+.volume-icon-bg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+}
+
+/* Cores de fundo específicas por tipo */
+.bg-yellow {
+    background-color: #f4f7b6;
+}
+
+.bg-green {
+    background-color: #b6f7c3;
+}
+
+.bg-darkgreen {
+    background-color: #78c4ab;
+}
+
+/* ===============================
+   PROGRESSO GLOBAL
+   =============================== */
+
+/* Card específico para o medidor de progresso */
+.card-gauge {
+    width: 100%;
+    max-width: 280px;
+    min-height: 180px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Wrapper para limitar tamanho do gráfico */
+.gauge-wrapper {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+/* ===============================
+   DESEMPENHO
+   =============================== */
+
+.card-desempenho {
+    padding: 16px 20px 32px;
+    text-align: center;
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.desempenho-indicador {
+    background-color: #c2f0d2;
+    color: #1b3f2d;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 6px 18px;
+    border-radius: 20px;
+    border: 2px dashed #169c6d;
+    display: inline-block;
+    margin-top: 2px; 
+}
+
+/* ===============================
+   CORES POR NÍVEL DE DESEMPENHO
+   =============================== */
+
+.indicador-expectavel {
+    background-color: #c2f0d2;
+    color: #1b3f2d;
+    border: 2px dashed #169c6d;
+}
+
+.indicador-risco {
+    background-color: #e5f2a1;   
+    color: #5c4700;              
+    border: 2px dashed #f1c232;  
+}
+
+.indicador-critico {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 2px dashed #dc3545;
 }

@@ -8,6 +8,7 @@ def connect_to_moodle_db(retries=10, delay=3):
         try:
             conn = mysql.connector.connect(
                 host=os.getenv("DB_HOST", "localhost"),
+                # host=os.getenv("DB_HOST", "db"), # Default to 'db' for Docker setup
                 user=os.getenv("DB_USER", "moodle"),
                 password=os.getenv("DB_PASS", "moodle"),
                 database=os.getenv("DB_NAME", "moodle")
