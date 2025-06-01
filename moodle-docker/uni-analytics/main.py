@@ -1,8 +1,15 @@
 import dash
 from dash import html, dcc
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
-from forms import formularioAluno
+from forms import formularioMain  # ← Lógica que decide qual formulário mostrar
+from db.formsDatabase import init_forms_table  # ← Função para criar a DB/tabela se não existir
 
+# Inicializar tabela da base de dados (se necessário)
+print("A inicializar a base de dados...")
+init_forms_table()
+print("Base de dados pronta.")
+
+# App Dash
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Learning Analytics"
 server = app.server
@@ -17,8 +24,8 @@ app.layout = html.Div([
     [dash.dependencies.Input('url', 'pathname')]
 )
 def display_page(pathname):
-    print("Path recebido:", pathname)  # Para diagnóstico no terminal
-    # Valores fixos temporários para simulação
+    print("Path recebido:", pathname)
+
     aluno_id = 105
     course_id = 2
 
@@ -28,7 +35,9 @@ def display_page(pathname):
             html.Div([
                 dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"})
+                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos", style={"display": "block", "margin": "10px"})
             ])
         ])
     elif pathname == "/dashboards/dashboardGeral":
@@ -37,11 +46,14 @@ def display_page(pathname):
         return dashboardAluno.layout(aluno_id, course_id)
     elif pathname == "/dashboards/dashboardProfessor":
         return dashboardProfessor.layout()
-    elif pathname == "/forms/formularioAluno":
-        return formularioAluno.layout()
+
+    # Verifica se é um formulário e retorna o layout correspondente
+    form_layout = formularioMain.get_layout(pathname)
+    if form_layout:
+        return form_layout
+
     return html.Div("Página não encontrada")
 
-
 if __name__ == '__main__':
-    formularioAluno.register_callbacks(app)
+    formularioMain.register_callbacks(app)  # ← Regista todos os callbacks
     app.run(debug=True, host="0.0.0.0", port=8050)
