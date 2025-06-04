@@ -2,23 +2,86 @@ from dash import html, dcc
 from dash_iconify import DashIconify
 import plotly.graph_objects as go
 import queries.queriesAluno as qa
+import traceback
+
+# =========================
+# Funções de lógica modular
+# =========================
+
+def obter_grupo_aluno(dados, aluno_id, course_id):
+    for d in dados:
+        if d['userid'] == aluno_id and d['course_id'] == course_id and d.get("groupname"):
+            return d["groupname"].lower()
+    return None
+
+def obter_assigns_validos(dados, course_id, grupo_aluno):
+    assigns_validos = []
+    for d in dados:
+        if d["course_id"] == course_id and d["module_type"] == "assign":
+            nome = (d.get("itemname") or "").lower()
+            grupo = (d.get("groupname") or "").lower()
+
+            if grupo_aluno and grupo_aluno in grupo:
+                if "aval" in grupo_aluno and any(e in nome for e in ["efolio", "global"]):
+                    assigns_validos.append(d["coursemodule_id"])
+                elif "exam" in grupo_aluno and "exame" in nome:
+                    assigns_validos.append(d["coursemodule_id"])
+    return assigns_validos
+
+def calcular_desempenho_etl(dados, aluno_id, course_id):
+    soma = 0.0
+    for d in dados:
+        if (
+            d.get('course_id') == course_id and
+            d.get('userid') == aluno_id and
+            d.get('module_type') == 'assign' and
+            d.get('finalgrade') is not None and
+            any(e in (d.get("itemname") or "").lower() for e in ['efolio', 'global'])
+        ):
+            try:
+                soma += float(d['finalgrade'])
+            except (ValueError, TypeError):
+                print(f"[AVISO] Nota inválida ignorada: {d['finalgrade']}")
+                continue
+    if soma < 3.5:
+        return "Crítico"
+    elif soma < 4.0:
+        return "Em Risco"
+    else:
+        return "Expectável"
+
+
+# =========================
+# Layout principal
+# =========================
 
 def layout(aluno_id, course_id):
     try:
-        avaliacao = qa.fetch_user_course_avaliation(aluno_id, course_id)
-        formativas = qa.fetch_user_course_formative(aluno_id, course_id)
-        quizz = qa.fetch_user_course_quizz(aluno_id, course_id)
+        dados_completions = qa.fetch_all_completions()
+
+        grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)
+        assigns_validos = obter_assigns_validos(dados_completions, course_id, grupo_aluno)
+
+        avaliacao = qa.calcular_pct_completions(
+            dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
+        )
+        formativas = qa.calcular_pct_completions(
+            dados_completions, aluno_id, course_id, ['page', 'resource']
+        )
+        quizz = qa.calcular_pct_completions(
+            dados_completions, aluno_id, course_id, ['quiz']
+        )
+        progresso_global = qa.calcular_pct_completions(
+            dados_completions, aluno_id, course_id, ['assign', 'page', 'resource', 'quiz']
+        )
+
         forum_criados = qa.fetch_user_forum_created_posts(aluno_id, course_id)
         forum_respostas = qa.fetch_user_forum_replies(aluno_id, course_id)
-        
-        # Valores fixos para volume de interação (ainda não pensei nas queries)
-        volume_bloco = render_volume_interacao(50, 70, 25)
-
-        progresso_global = qa.fetch_user_course_progress(aluno_id, course_id)
-        performance = qa.fetch_user_course_performance(aluno_id, course_id)
+        desempenho = calcular_desempenho_etl(dados_completions, aluno_id, course_id)
 
     except Exception as e:
-        print("Erro ao buscar progresso de atividades:", e)
+        print("[ERRO] (layout) Falha ao gerar o dashboard do aluno.")
+        traceback.print_exc()
         return html.Div("Erro ao ligar à base de dados.")
 
     return html.Div(className="dashboard-grid", children=[
@@ -29,19 +92,19 @@ def layout(aluno_id, course_id):
         ]),
         html.Div(className="coluna-direita", children=[
             render_progresso_global(progresso_global),
-            render_performance(performance)
+            render_desempenho(desempenho)
         ])
     ])
+
+# =========================
+# Componentes visuais
+# =========================
 
 def render_progresso_atividades(avaliacao, formativas, quizz):
     return html.Div(className="card card-progresso", children=[
         html.H4("Progresso das Actividades", className="card-section-title"),
-
-        # Avaliação — Amarelo
         barra_personalizada("Avaliação", avaliacao, "#e2f396"),
-        # Formativas — Verde menta
         barra_personalizada("Formativas", formativas, "#76d19e"),
-        # Quizz — Verde água escuro 
         barra_personalizada("Quizz", quizz, "#289c83"),
     ])
 
@@ -49,13 +112,11 @@ def render_mensagens_forum(criados, respondidos):
     return html.Div(className="card card-forum", children=[
         html.H4("Mensagens do fórum", className="card-section-title"),
         html.Div(className="forum-box", children=[
-
             html.Div(className="forum-created-box", children=[
                 DashIconify(icon="mdi:email-outline", width=36, color="white"),
                 html.Div("Criados", className="forum-label"),
                 html.Div(str(criados), className="forum-number")
             ]),
-
             html.Div(className="forum-replied-box", children=[
                 DashIconify(icon="mdi:email-send-outline", width=36, color="white"),
                 html.Div("Respondidos", className="forum-label"),
@@ -68,7 +129,6 @@ def render_volume_interacao(ficheiros, paginas, links):
     return html.Div(className="card card-volume", children=[
         html.H4("Volume de Interação", className="card-section-title"),
         html.Ul(className="volume-list", children=[
-
             html.Li(className="volume-item", children=[
                 html.Div(className="volume-icon-bg bg-yellow", children=[
                     DashIconify(icon="mdi:folder-outline", width=24, color="white")
@@ -76,7 +136,6 @@ def render_volume_interacao(ficheiros, paginas, links):
                 html.Span("Ficheiros"),
                 html.Span(str(ficheiros), className="volume-number")
             ]),
-
             html.Li(className="volume-item", children=[
                 html.Div(className="volume-icon-bg bg-green", children=[
                     DashIconify(icon="mdi:file-document-outline", width=24, color="white")
@@ -84,7 +143,6 @@ def render_volume_interacao(ficheiros, paginas, links):
                 html.Span("Páginas"),
                 html.Span(str(paginas), className="volume-number")
             ]),
-
             html.Li(className="volume-item", children=[
                 html.Div(className="volume-icon-bg bg-darkgreen", children=[
                     DashIconify(icon="mdi:link-variant", width=24, color="white")
@@ -104,23 +162,14 @@ def render_progresso_global(progresso_pct):
             'font': {'size': 24, 'color': "#2c3e50", 'family': 'sans-serif'}
         },
         gauge={
-            'axis': {
-                'range': [0, 100],
-                'visible': False  # Oculta todos os ticks e traços
-            },
+            'axis': {'range': [0, 100], 'visible': False},
             'bar': {'color': '#7cc3ac', 'thickness': 0.3},
             'bgcolor': "#f9f9f9",
             'borderwidth': 0,
-            'steps': [
-                {'range': [0, 100], 'color': "#dfeeee"},
-            ],
+            'steps': [{'range': [0, 100], 'color': "#dfeeee"}]
         }
     ))
-    
-    fig.update_layout(
-        margin=dict(t=20, b=20, l=20, r=20),
-        height=160
-    )
+    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=160)
     return html.Div(className="card card-gauge", children=[
         html.H4("Progresso", className="card-section-title"),
         html.Div(className="gauge-wrapper", children=[
@@ -128,15 +177,13 @@ def render_progresso_global(progresso_pct):
         ])
     ])
 
-def render_performance(nivel):
-    # Define classe com base no nível
+def render_desempenho(nivel):
     if nivel == "Crítico":
         classe_cor = "indicador-critico"
     elif nivel == "Em Risco":
         classe_cor = "indicador-risco"
     else:
         classe_cor = "indicador-expectavel"
-
     return html.Div(className="card card-desempenho", children=[
         html.H4("Desempenho", className="card-section-title"),
         html.Div(nivel, className=f"desempenho-indicador {classe_cor}")

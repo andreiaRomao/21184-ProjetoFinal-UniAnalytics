@@ -1,95 +1,72 @@
 import pandas as pd
 from db.moodleConnection import connect_to_moodle_db
 
-def fetch_user_course_avaliation(aluno_id, course_id):
+def fetch_all_completions():
+    from db.moodleConnection import connect_to_moodle_db
     conn = connect_to_moodle_db()
-    query = """
+    query = """      
         SELECT
-            ROUND(
-                SUM(CASE WHEN cmc.completionstate = 1 THEN 1 ELSE 0 END)
-                / COUNT(*) * 100
-            ,0) AS pct_concluido
+            cm.id AS coursemodule_id,
+            cm.course AS course_id,
+            m.name AS module_type,
+            cmc.userid,
+            cmc.completionstate,
+            gi.itemname,
+            g.id AS groupid,
+            g.name AS groupname,
+            gg.finalgrade
         FROM mdl_course_modules cm
-        JOIN mdl_modules m
-            ON m.id = cm.module
+        JOIN mdl_modules m ON m.id = cm.module
         LEFT JOIN mdl_course_modules_completion cmc
             ON cm.id = cmc.coursemoduleid
-            AND cmc.userid = %s
-            AND cmc.completionstate = 1
-        WHERE cm.course = %s
-            AND cm.completion > 0
-            AND m.name = 'assign';
+        LEFT JOIN mdl_grade_items gi
+            ON gi.iteminstance = cm.instance AND gi.itemtype = 'mod' AND gi.courseid = cm.course
+        LEFT JOIN mdl_grade_grades gg
+            ON gg.itemid = gi.id AND gg.userid = cmc.userid
+        LEFT JOIN mdl_user_enrolments ue
+            ON ue.userid = cmc.userid
+        LEFT JOIN mdl_enrol e
+            ON e.id = ue.enrolid AND e.courseid = cm.course
+        LEFT JOIN mdl_groups_members gm
+            ON gm.userid = cmc.userid
+        LEFT JOIN mdl_groups g
+            ON g.id = gm.groupid
+        WHERE cm.completion > 0;
     """
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, (aluno_id, course_id))
-        row = cursor.fetchone()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        rows = cursor.fetchall()
         conn.close()
-        return int(row[0]) if row and row[0] is not None else 0
+        return rows
     except Exception as e:
-        print("Erro ao executar a query de progresso de avaliação:", e)
+        print("Erro ao obter completions globais:", e)
         conn.close()
-        return 0
+        return []
 
-def fetch_user_course_formative(aluno_id, course_id):
-    conn = connect_to_moodle_db()
-    query = """
-        SELECT
-            ROUND(
-                SUM(CASE WHEN cmc.completionstate = 1 THEN 1 ELSE 0 END)
-                / COUNT(*) * 100
-            ,0) AS pct_formativas
-        FROM mdl_course_modules cm
-        JOIN mdl_modules m
-            ON m.id = cm.module
-        LEFT JOIN mdl_course_modules_completion cmc
-            ON cm.id = cmc.coursemoduleid
-            AND cmc.userid = %s
-            AND cmc.completionstate = 1
-        WHERE cm.course = %s
-            AND cm.completion > 0
-            AND m.name IN ('page', 'resource');
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, (aluno_id, course_id))
-        row = cursor.fetchone()
-        conn.close()
-        return int(row[0]) if row and row[0] is not None else 0
-    except Exception as e:
-        print("Erro ao executar a query de progresso de formativas:", e)
-        conn.close()
-        return 0
+def calcular_pct_completions(dados, aluno_id, course_id, tipos, apenas_ids=None):
+    # Filtra dados relevantes para o aluno e curso
+    dados_filtrados = [
+        d for d in dados
+        if d['course_id'] == course_id
+        and d['module_type'] in tipos
+        and (apenas_ids is None or d['coursemodule_id'] in apenas_ids)
+    ]
 
-def fetch_user_course_quizz(aluno_id, course_id):
-    conn = connect_to_moodle_db()
-    query = """
-        SELECT
-            ROUND(
-                SUM(CASE WHEN cmc.completionstate = 1 THEN 1 ELSE 0 END)
-                / COUNT(*) * 100
-            ,0) AS pct_quiz
-        FROM mdl_course_modules cm
-        JOIN mdl_modules m
-            ON m.id = cm.module
-        LEFT JOIN mdl_course_modules_completion cmc
-            ON cm.id = cmc.coursemoduleid
-            AND cmc.userid = %s
-            AND cmc.completionstate = 1
-        WHERE cm.course = %s
-            AND cm.completion > 0
-            AND m.name = 'quiz';
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, (aluno_id, course_id))
-        row = cursor.fetchone()
-        conn.close()
-        return int(row[0]) if row and row[0] is not None else 0
-    except Exception as e:
-        print("Erro ao executar a query de progresso de quizz:", e)
-        conn.close()
-        return 0
+    # Conta apenas os módulos únicos disponíveis no curso
+    ids_unicos = set(d['coursemodule_id'] for d in dados_filtrados)
+
+    # Agora conta os completados pelo aluno
+    completados = set(
+        d['coursemodule_id']
+        for d in dados_filtrados
+        if d.get('userid') == aluno_id and d.get('completionstate') == 1
+    )
+
+    total = len(ids_unicos)
+    concluidos = len(completados)
+
+    return round(concluidos / total * 100) if total > 0 else 0
 
 def fetch_user_forum_created_posts(aluno_id, course_id):
     conn = connect_to_moodle_db()
@@ -166,87 +143,3 @@ def fetch_user_forum_replies(aluno_id, course_id):
         conn.close()
         return 0
 
-def fetch_user_course_progress(aluno_id, course_id):
-    conn = connect_to_moodle_db()
-    query = """
-        WITH stats AS (
-            SELECT
-                CASE
-                    WHEN m.name = 'assign'             THEN 'Avaliação'
-                    WHEN m.name IN ('page','resource') THEN 'Formativas'
-                    WHEN m.name = 'quiz'               THEN 'Quiz'
-                END AS categoria,
-                COUNT(*) AS total_atividades,
-                SUM(CASE WHEN cmc.completionstate = 1 THEN 1 ELSE 0 END) AS concluidas
-            FROM mdl_course_modules cm
-            JOIN mdl_modules m
-              ON m.id = cm.module
-            LEFT JOIN mdl_course_modules_completion cmc
-              ON cm.id = cmc.coursemoduleid
-                 AND cmc.userid = %s
-                 AND cmc.completionstate = 1
-            WHERE cm.course = %s
-              AND cm.completion > 0
-              AND m.name IN ('assign','page','resource','quiz')
-            GROUP BY categoria
-        )
-        SELECT ROUND(
-            SUM(concluidas) / NULLIF(SUM(total_atividades), 0) * 100, 0
-        ) AS progresso_pct
-        FROM stats;
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, (aluno_id, course_id))
-        row = cursor.fetchone()
-        conn.close()
-        return int(row[0]) if row and row[0] is not None else 0
-    except Exception as e:
-        print("Erro ao calcular progresso global:", e)
-        conn.close()
-        return 0
-
-def fetch_user_course_performance(aluno_id, course_id):
-    conn = connect_to_moodle_db()
-    query = """
-        SELECT
-          desempenho.soma_efolios,
-          CASE
-            WHEN desempenho.soma_efolios <  3.0 THEN 'Crítico'
-            WHEN desempenho.soma_efolios <  4.0 THEN 'Em Risco'
-            ELSE                              'Expectável'
-          END AS performance_level
-        FROM (
-          SELECT
-            COALESCE(SUM(gg.finalgrade), 0) AS soma_efolios
-          FROM mdl_grade_grades gg
-          JOIN mdl_grade_items gi
-            ON gg.itemid = gi.id
-          WHERE gi.courseid = %s
-            AND gg.userid   = %s
-            AND gi.itemtype = 'mod'
-            AND REPLACE(
-                  REPLACE(
-                    REPLACE(
-                      REPLACE(
-                        LOWER(gi.itemname),
-                        ' ', ''
-                      ),
-                      '-', ''
-                    ),
-                    'ó', 'o'
-                  ),
-                  'é', 'e'
-                ) LIKE '%efolio%'
-        ) AS desempenho;
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, (course_id, aluno_id))
-        row = cursor.fetchone()
-        conn.close()
-        return row[1] if row and row[1] is not None else "Desconhecido"
-    except Exception as e:
-        print("Erro ao calcular desempenho do aluno:", e)
-        conn.close()
-        return "Erro"
