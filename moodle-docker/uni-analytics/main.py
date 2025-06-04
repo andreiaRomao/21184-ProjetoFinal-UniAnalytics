@@ -37,7 +37,8 @@ def display_page(pathname):
                 dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos", style={"display": "block", "margin": "10px"})
+                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Administração de Formulários", href="/forms/formulariosAdmin", style={"display": "block", "margin": "10px"})
             ])
         ])
     elif pathname == "/dashboards/dashboardGeral":

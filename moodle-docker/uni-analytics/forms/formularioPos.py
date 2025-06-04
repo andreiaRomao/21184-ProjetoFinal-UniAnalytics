@@ -1,95 +1,163 @@
-from dash import html, dcc, Input, Output, State
+import dash
+from dash import html, dcc, Input, State, Output
+from dash import ALL
+from dash.exceptions import PreventUpdate
 from db.formsDatabase import connect_to_forms_db
 
+
+# Layout da página do formulário de Pós-Avaliação
 def layout():
     return html.Div(className="dashboard-container", children=[
         html.Div(className="card", children=[
-            html.H2("Pós-Avaliação da Disciplina", className="card-title"),
-            dcc.Store(id='etapa-pos', data=1),
-            dcc.Store(id='respostas-pos', data={}),
+            dcc.Interval(id="init-load-pos", interval=1, n_intervals=0, max_intervals=1),
+            html.H2("Pós-Avaliação", className="card-title"),
 
-            html.Div(id='pergunta-area-pos'),
+            # Armazenamento de estado no navegador
+            dcc.Store(id='etapa-pos', data=0),            # Etapa atual do formulário
+            dcc.Store(id='respostas-pos', data={}),       # Respostas do utilizador
+            dcc.Store(id='perguntas-pos'),                # Perguntas carregadas da base de dados
+            dcc.Store(id="aluno-id", data=999),           # ID do aluno (placeholder por agora)
+
+            # Área onde será apresentada a pergunta atual
+            html.Div(id='pergunta-area-pos', children="A carregar perguntas..."),
 
             html.Br(),
+
+            # Botões de navegação
             html.Div([
                 html.Button("Seguinte", id="next-btn-pos", n_clicks=0, className="btn"),
                 html.Button("Submeter", id="submit-btn-pos", n_clicks=0, className="btn", style={"display": "none"}),
-                html.Button("Ver Resultados", id="ver-resultados-btn-pos", n_clicks=0, className="btn", style={"marginTop": "20px"}),
+                html.Button("Ver Resultados", id="ver-resultados-btn-pos", n_clicks=0, className="btn")
             ], style={"display": "flex", "gap": "20px"}),
 
+            # Mensagem final
             html.Div(id="mensagem-final-pos", style={"marginTop": "20px", "fontWeight": "bold", "textAlign": "center"}),
+
+            # Resultados recentes gravados na BD
             html.Div(id="resultados-db-pos", style={"marginTop": "20px"})
         ])
     ])
 
+# Callbacks para o formulário de Pós-Avaliação
 def register_callbacks(app):
-    perguntas = {
-        1: "Como avalias a tua aprendizagem global?",
-        2: "Sentiste-te preparado para o exame final?",
-        3: "A disciplina superou as tuas expectativas?"
-    }
 
-    opcoes = {
-        1: ["Muito boa", "Boa", "Razoável", "Fraca"],
-        2: ["Sim", "Não", "Mais ou menos"],
-        3: ["Sim", "Não"]
-    }
+    # Carrega as perguntas do tipo 'pos' ao iniciar
+    @app.callback(
+        Output("perguntas-pos", "data"),
+        Input("init-load-pos", "n_intervals")
+    )
+    def carregar_perguntas(n):
+        print("[carregar_perguntas POS] Callback iniciado com n_intervals =", n)
+        try:
+            conn = connect_to_forms_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, pergunta
+                FROM formularios_perguntas
+                WHERE tipo_formulario = 'pos'
+                ORDER BY id ASC
+            """)
+            perguntas = cursor.fetchall()
+            conn.close()
+            return [{"id": p[0], "texto": p[1]} for p in perguntas]
+        except Exception as e:
+            print("[carregar_perguntas POS] Erro:", e)
+            return []
 
+    # Mostra a introdução ou a pergunta atual
     @app.callback(
         Output("pergunta-area-pos", "children"),
         Output("next-btn-pos", "style"),
         Output("submit-btn-pos", "style"),
         Input("etapa-pos", "data"),
+        Input("perguntas-pos", "data"),
         State("respostas-pos", "data")
     )
-    def mostrar_pergunta(etapa, respostas):
+    def mostrar_pergunta(etapa, perguntas, respostas):
+        if perguntas is None:
+            raise PreventUpdate
+
+        if etapa == 0:
+            return html.Div(
+                "Bem-vindo ao formulário de pós-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade."
+            ), {"display": "inline-block"}, {"display": "none"}
+
         if etapa > len(perguntas):
-            return html.Div("Obrigado! A submeter..."), {"display": "none"}, {"display": "inline-block"}
+            return html.Div("Obrigado! As tuas respostas vão ser submetidas."), {"display": "none"}, {"display": "inline-block"}
+
+        pergunta_atual = perguntas[etapa - 1]
+        pergunta_id = pergunta_atual["id"]
+
+        try:
+            conn = connect_to_forms_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT resposta FROM formularios_respostas WHERE pergunta_id = ?", (pergunta_id,))
+            rows = cursor.fetchall()
+            conn.close()
+            opcoes = [r[0] for r in rows]
+        except Exception as e:
+            print("[mostrar_pergunta POS] Erro ao carregar opções:", e)
+            opcoes = []
 
         return html.Div([
-            html.Label(perguntas[etapa]),
+            html.Label(pergunta_atual["texto"]),
             dcc.Dropdown(
-                id="resposta-pos",
-                options=[{"label": o, "value": o} for o in opcoes[etapa]],
+                id={"type": "resposta-pos", "index": etapa},
+                options=[{"label": o, "value": o} for o in opcoes],
                 placeholder="Seleciona uma opção",
-                value=respostas.get(str(etapa))
+                value=respostas.get(str(pergunta_id))
             )
         ]), {"display": "inline-block"}, {"display": "none"}
 
+    # Guarda a resposta atual e passa para a próxima pergunta
     @app.callback(
         Output("etapa-pos", "data"),
         Output("respostas-pos", "data"),
         Input("next-btn-pos", "n_clicks"),
         State("etapa-pos", "data"),
         State("respostas-pos", "data"),
-        State("resposta-pos", "value"),
+        State({"type": "resposta-pos", "index": ALL}, "value"),
+        State("perguntas-pos", "data"),
         prevent_initial_call=True
     )
-    def avancar(n_clicks, etapa, respostas, resposta_atual):
-        if resposta_atual:
-            respostas[str(etapa)] = resposta_atual
-            return etapa + 1, respostas
-        return etapa, respostas
+    def avancar(n_clicks, etapa, respostas, resposta_atual_lista, perguntas):
+        if perguntas is None:
+            raise PreventUpdate
 
+        if etapa > 0 and etapa <= len(perguntas) and resposta_atual_lista and resposta_atual_lista[0] is not None:
+            pergunta_id = perguntas[etapa - 1]["id"]
+            respostas[str(pergunta_id)] = resposta_atual_lista[0]
+
+        return etapa + 1, respostas
+
+    # Submete todas as respostas para a base de dados
     @app.callback(
         Output("mensagem-final-pos", "children"),
         Input("submit-btn-pos", "n_clicks"),
         State("respostas-pos", "data"),
+        State("aluno-id", "data"),
         prevent_initial_call=True
     )
-    def submeter(n, respostas):
+    def submeter(n_clicks, respostas, aluno_id):
+        if not respostas:
+            return "Por favor responde a todas as perguntas antes de submeter."
+
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            for key, resposta in respostas.items():
-                pergunta_texto = perguntas[int(key)]
-                cursor.execute("INSERT INTO respostas (pergunta, resposta, tipo_formulario) VALUES (?, ?, ?)", (pergunta_texto, resposta, "pos"))
+            for pergunta_id_str, resposta in respostas.items():
+                cursor.execute(
+                    "INSERT INTO alunos_respostas (pergunta_id, resposta, aluno_id) VALUES (?, ?, ?)",
+                    (int(pergunta_id_str), resposta, aluno_id)
+                )
             conn.commit()
             conn.close()
             return "Obrigado! Respostas submetidas com sucesso."
         except Exception as e:
-            return f"Erro ao guardar: {str(e)}"
+            print("Erro ao guardar respostas POS:", e)
+            return f"Erro ao guardar: {e}"
 
+    # Mostra os últimos 10 registos na base de dados
     @app.callback(
         Output("resultados-db-pos", "children"),
         Input("ver-resultados-btn-pos", "n_clicks"),
@@ -99,15 +167,18 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("SELECT pergunta, resposta, timestamp FROM respostas WHERE tipo_formulario = 'pos' ORDER BY timestamp DESC LIMIT 10")
+            cursor.execute("""
+                SELECT p.pergunta, a.resposta, a.created_at
+                FROM alunos_respostas a
+                JOIN formularios_perguntas p ON a.pergunta_id = p.id
+                WHERE p.tipo_formulario = 'pos'
+                ORDER BY a.created_at DESC
+                LIMIT 10
+            """)
             rows = cursor.fetchall()
             conn.close()
-
-            if not rows:
-                return "Ainda não existem respostas registadas."
-
             return html.Ul([
-                html.Li(f"{pergunta} → {resposta} ({ts})") for pergunta, resposta, ts in rows
+                html.Li(f"{ts} - {pergunta} → {resposta}") for pergunta, resposta, ts in rows
             ])
         except Exception as e:
-            return f"Erro ao obter resultados: {str(e)}"
+            return f"Erro ao carregar resultados: {e}"
