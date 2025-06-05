@@ -3,7 +3,7 @@ from dash import html, dcc, Input, State, Output
 from dash import ALL
 from dash.exceptions import PreventUpdate
 from db.uniAnalytics import connect_to_forms_db
-
+from utils.logger import logger
 
 # Layout da página do formulário de Pós-Avaliação
 def layout():
@@ -13,10 +13,10 @@ def layout():
             html.H2("Pós-Avaliação", className="card-title"),
 
             # Armazenamento de estado no navegador
-            dcc.Store(id='etapa-pos', data=0),            # Etapa atual do formulário
-            dcc.Store(id='respostas-pos', data={}),       # Respostas do utilizador
-            dcc.Store(id='perguntas-pos'),                # Perguntas carregadas da base de dados
-            dcc.Store(id="aluno-id", data=999),           # ID do aluno (placeholder por agora)
+            dcc.Store(id='etapa-pos', data=0),
+            dcc.Store(id='respostas-pos', data={}),
+            dcc.Store(id='perguntas-pos'),
+            dcc.Store(id="aluno-id", data=999),
 
             # Área onde será apresentada a pergunta atual
             html.Div(id='pergunta-area-pos', children="A carregar perguntas..."),
@@ -30,10 +30,8 @@ def layout():
                 html.Button("Ver Resultados", id="ver-resultados-btn-pos", n_clicks=0, className="btn")
             ], style={"display": "flex", "gap": "20px"}),
 
-            # Mensagem final
             html.Div(id="mensagem-final-pos", style={"marginTop": "20px", "fontWeight": "bold", "textAlign": "center"}),
 
-            # Resultados recentes gravados na BD
             html.Div(id="resultados-db-pos", style={"marginTop": "20px"})
         ])
     ])
@@ -41,30 +39,31 @@ def layout():
 # Callbacks para o formulário de Pós-Avaliação
 def register_callbacks(app):
 
-    # Carrega as perguntas do tipo 'pos' ao iniciar
     @app.callback(
         Output("perguntas-pos", "data"),
         Input("init-load-pos", "n_intervals")
     )
     def carregar_perguntas(n):
-        print("[carregar_perguntas POS] Callback iniciado com n_intervals =", n)
+        logger.debug(f"[POS] Iniciar carregamento de perguntas com n_intervals={n}")
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("""
+            query = """
                 SELECT id, question
                 FROM forms_questions
                 WHERE form_type = 'pos'
                 ORDER BY id ASC
-            """)
+            """
+            logger.debug(f"[POS] Executar query: {query}")
+            cursor.execute(query)
             perguntas = cursor.fetchall()
             conn.close()
+            logger.info(f"[POS] Carregadas {len(perguntas)} perguntas.")
             return [{"id": p[0], "texto": p[1]} for p in perguntas]
         except Exception as e:
-            print("[carregar_perguntas POS] Erro:", e)
+            logger.exception("[POS] Erro ao carregar perguntas")
             return []
 
-    # Mostra a introdução ou a pergunta atual
     @app.callback(
         Output("pergunta-area-pos", "children"),
         Output("next-btn-pos", "style"),
@@ -79,11 +78,15 @@ def register_callbacks(app):
 
         if etapa == 0:
             return html.Div(
-                "Bem-vindo ao formulário de pós-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade."
+                "Bem-vindo ao formulário de pós-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade.",
+                className="pergunta-card"
             ), {"display": "inline-block"}, {"display": "none"}
 
         if etapa > len(perguntas):
-            return html.Div("Obrigado! As tuas respostas vão ser submetidas."), {"display": "none"}, {"display": "inline-block"}
+            return html.Div(
+                "Obrigado! As tuas respostas vão ser submetidas.",
+                className="pergunta-card"
+            ), {"display": "none"}, {"display": "inline-block"}
 
         pergunta_atual = perguntas[etapa - 1]
         pergunta_id = pergunta_atual["id"]
@@ -91,12 +94,15 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, answer FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+            query = "SELECT id, answer FROM forms_answers WHERE question_id = ?"
+            params = (pergunta_id,)
+            logger.debug(f"[POS] Executar query: {query} | Params: {params}")
+            cursor.execute(query, params)
             rows = cursor.fetchall()
             conn.close()
-            opcoes = [{"label": r[1], "value": r[0]} for r in rows]  # value = id
+            opcoes = [{"label": r[1], "value": r[0]} for r in rows]
         except Exception as e:
-            print("[mostrar_pergunta POS] Erro ao carregar opções:", e)
+            logger.exception("[POS] Erro ao carregar opções")
             opcoes = []
 
         return html.Div([
@@ -104,12 +110,12 @@ def register_callbacks(app):
             dcc.Dropdown(
                 id={"type": "resposta-pos", "index": etapa},
                 options=opcoes,
+                className="pergunta-opcao",
                 placeholder="Seleciona uma opção",
-                value=respostas.get(str(pergunta_id))  # resposta guardada é o ID
+                value=respostas.get(str(pergunta_id))
             )
-        ]), {"display": "inline-block"}, {"display": "none"}
+        ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}
 
-    # Guarda a resposta atual e passa para a próxima pergunta
     @app.callback(
         Output("etapa-pos", "data"),
         Output("respostas-pos", "data"),
@@ -126,11 +132,11 @@ def register_callbacks(app):
 
         if etapa > 0 and etapa <= len(perguntas) and resposta_atual_lista and resposta_atual_lista[0] is not None:
             pergunta_id = perguntas[etapa - 1]["id"]
-            respostas[str(pergunta_id)] = resposta_atual_lista[0]  # guarda o ID da resposta
+            respostas[str(pergunta_id)] = resposta_atual_lista[0]
+            logger.debug(f"[POS] Guardada resposta: pergunta_id={pergunta_id}, resposta_id={resposta_atual_lista[0]}")
 
         return etapa + 1, respostas
 
-    # Submete todas as respostas para a base de dados
     @app.callback(
         Output("mensagem-final-pos", "children"),
         Input("submit-btn-pos", "n_clicks"),
@@ -146,18 +152,21 @@ def register_callbacks(app):
             conn = connect_to_forms_db()
             cursor = conn.cursor()
             for pergunta_id_str, answer_id in respostas.items():
-                cursor.execute(
-                    "INSERT INTO forms_student_answers (student_id, question_id, answer_id) VALUES (?, ?, ?)",
-                    (aluno_id, int(pergunta_id_str), int(answer_id))
-                )
+                query = """
+                    INSERT INTO forms_student_answers (student_id, question_id, answer_id)
+                    VALUES (?, ?, ?)
+                """
+                params = (aluno_id, int(pergunta_id_str), int(answer_id))
+                logger.debug(f"[POS] Executar INSERT: {query.strip()} | Params: {params}")
+                cursor.execute(query, params)
             conn.commit()
             conn.close()
+            logger.info(f"[POS] Respostas submetidas pelo aluno {aluno_id}")
             return "Obrigado! Respostas submetidas com sucesso."
         except Exception as e:
-            print("Erro ao guardar respostas POS:", e)
+            logger.exception("[POS] Erro ao guardar respostas")
             return f"Erro ao guardar: {e}"
 
-    # Mostra os últimos 10 registos na base de dados
     @app.callback(
         Output("resultados-db-pos", "children"),
         Input("ver-resultados-btn-pos", "n_clicks"),
@@ -167,7 +176,7 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("""
+            query = """
                 SELECT q.question, r.answer, a.created_at
                 FROM forms_student_answers a
                 JOIN forms_questions q ON a.question_id = q.id
@@ -175,11 +184,15 @@ def register_callbacks(app):
                 WHERE q.form_type = 'pos'
                 ORDER BY a.created_at DESC
                 LIMIT 10
-            """)
+            """
+            logger.debug(f"[POS] Executar query: {query.strip()}")
+            cursor.execute(query)
             rows = cursor.fetchall()
             conn.close()
+            logger.info(f"[POS] Consultados {len(rows)} registos recentes")
             return html.Ul([
                 html.Li(f"{ts} - {pergunta} → {resposta}") for pergunta, resposta, ts in rows
             ])
         except Exception as e:
+            logger.exception("[POS] Erro ao carregar resultados")
             return f"Erro ao carregar resultados: {e}"

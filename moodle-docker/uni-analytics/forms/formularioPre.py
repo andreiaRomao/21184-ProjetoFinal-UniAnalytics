@@ -3,7 +3,7 @@ from dash import html, dcc, Input, State, Output
 from dash import ALL
 from dash.exceptions import PreventUpdate
 from db.uniAnalytics import connect_to_forms_db
-
+from utils.logger import logger
 
 # Layout da página de formulário de Pré-Avaliação
 def layout():
@@ -47,33 +47,24 @@ def register_callbacks(app):
         Input("init-load-pre", "n_intervals")
     )
     def carregar_perguntas(n):
-        print("[carregar_perguntas] Callback iniciado com n_intervals =", n)
-
+        logger.debug(f"[PRE] Iniciar carregamento de perguntas com n_intervals={n}")
         try:
-            print("[carregar_perguntas] A estabelecer ligação à base de dados...")
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-
-            print("[carregar_perguntas] A executar query às perguntas...")
-            cursor.execute("""
+            query = """
                 SELECT id, question
                 FROM forms_questions
                 WHERE form_type = 'pre'
                 ORDER BY id ASC
-            """)
+            """
+            logger.debug(f"[PRE] Executar query: {query.strip()}")
+            cursor.execute(query)
             perguntas = cursor.fetchall()
-
-            print(f"[carregar_perguntas] Total de perguntas obtidas: {len(perguntas)}")
-            for p in perguntas:
-                print(f"  Pergunta ID={p[0]} → {p[1]}")
-
             conn.close()
-            print("[carregar_perguntas] Ligação à base de dados fechada.")
-
+            logger.info(f"[PRE] Carregadas {len(perguntas)} perguntas.")
             return [{"id": p[0], "texto": p[1]} for p in perguntas]
-
         except Exception as e:
-            print("[carregar_perguntas] Erro ao aceder à base de dados:", e)
+            logger.exception("[PRE] Erro ao carregar perguntas")
             return []
 
     # Mostra a introdução ou a pergunta atual e os botões adequados
@@ -89,40 +80,45 @@ def register_callbacks(app):
         if perguntas is None:
             raise PreventUpdate
 
-        # Etapa 0: introdução
         if etapa == 0:
             return html.Div(
-                "Bem-vindo ao formulário de pré-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade."
+                "Bem-vindo ao formulário de pré-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade.",
+                className="pergunta-card"
             ), {"display": "inline-block"}, {"display": "none"}
 
-        # Etapa além do número de perguntas → mostrar botão de submissão
         if etapa > len(perguntas):
-            return html.Div("Obrigado! As tuas respostas vão ser submetidas."), {"display": "none"}, {"display": "inline-block"}
+            return html.Div(
+                "Obrigado! As tuas respostas vão ser submetidas.",
+                className="pergunta-card"
+            ), {"display": "none"}, {"display": "inline-block"}
 
-        # Carrega pergunta e opções
         pergunta_atual = perguntas[etapa - 1]
         pergunta_id = pergunta_atual["id"]
 
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, answer FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+            query = "SELECT id, answer FROM forms_answers WHERE question_id = ?"
+            params = (pergunta_id,)
+            logger.debug(f"[PRE] Executar query: {query} | Params: {params}")
+            cursor.execute(query, params)
             rows = cursor.fetchall()
             conn.close()
-            opcoes = [{"label": r[1], "value": r[0]} for r in rows]  # value = ID da resposta
+            opcoes = [{"label": r[1], "value": r[0]} for r in rows]
         except Exception as e:
-            print("Erro ao carregar opções:", e)
+            logger.exception("[PRE] Erro ao carregar opções da pergunta")
             opcoes = []
 
         return html.Div([
             html.Label(pergunta_atual["texto"]),
             dcc.Dropdown(
-                id={"type": "resposta-pre", "index": etapa}, 
+                id={"type": "resposta-pre", "index": etapa},
                 options=opcoes,
+                className="pergunta-opcao",
                 placeholder="Seleciona uma opção",
-                value=respostas.get(str(pergunta_id))  # Resposta guardada é o ID
+                value=respostas.get(str(pergunta_id))
             )
-        ]), {"display": "inline-block"}, {"display": "none"}
+        ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}
 
     # Guarda a resposta atual e passa para a próxima pergunta
     @app.callback(
@@ -131,7 +127,7 @@ def register_callbacks(app):
         Input("next-btn-pre", "n_clicks"),
         State("etapa-pre", "data"),
         State("respostas-pre", "data"),
-        State({"type": "resposta-pre", "index": ALL}, "value"),  # ← MATCH com dicionário dinâmico
+        State({"type": "resposta-pre", "index": ALL}, "value"),
         State("perguntas-pre", "data"),
         prevent_initial_call=True
     )
@@ -139,10 +135,10 @@ def register_callbacks(app):
         if perguntas is None:
             raise dash.exceptions.PreventUpdate
 
-        # Só guarda se tiver havido dropdown válido
         if etapa > 0 and etapa <= len(perguntas) and resposta_atual_lista and resposta_atual_lista[0] is not None:
             pergunta_id = perguntas[etapa - 1]["id"]
-            respostas[str(pergunta_id)] = resposta_atual_lista[0]  # Guarda o ID da resposta
+            respostas[str(pergunta_id)] = resposta_atual_lista[0]
+            logger.debug(f"[PRE] Guardada resposta: pergunta_id={pergunta_id}, resposta_id={resposta_atual_lista[0]}")
 
         return etapa + 1, respostas
 
@@ -162,15 +158,19 @@ def register_callbacks(app):
             conn = connect_to_forms_db()
             cursor = conn.cursor()
             for pergunta_id_str, answer_id in respostas.items():
-                cursor.execute(
-                    "INSERT INTO forms_student_answers (student_id, question_id, answer_id) VALUES (?, ?, ?)",
-                    (aluno_id, int(pergunta_id_str), int(answer_id))
-                )
+                query = """
+                    INSERT INTO forms_student_answers (student_id, question_id, answer_id)
+                    VALUES (?, ?, ?)
+                """
+                params = (aluno_id, int(pergunta_id_str), int(answer_id))
+                logger.debug(f"[PRE] Executar INSERT: {query.strip()} | Params: {params}")
+                cursor.execute(query, params)
             conn.commit()
             conn.close()
+            logger.info(f"[PRE] Submissão concluída para aluno_id={aluno_id}")
             return "Obrigado! Respostas submetidas com sucesso."
         except Exception as e:
-            print("Erro ao guardar respostas:", e)
+            logger.exception("[PRE] Erro ao guardar respostas")
             return f"Erro ao guardar: {e}"
 
     # Mostra os últimos 10 registos na base de dados
@@ -183,7 +183,7 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("""
+            query = """
                 SELECT q.question, r.answer, a.created_at
                 FROM forms_student_answers a
                 JOIN forms_questions q ON a.question_id = q.id
@@ -191,11 +191,15 @@ def register_callbacks(app):
                 WHERE q.form_type = 'pre'
                 ORDER BY a.created_at DESC
                 LIMIT 10
-            """)
+            """
+            logger.debug(f"[PRE] Executar query: {query.strip()}")
+            cursor.execute(query)
             rows = cursor.fetchall()
             conn.close()
+            logger.info(f"[PRE] Consultados {len(rows)} registos")
             return html.Ul([
                 html.Li(f"{ts} - {pergunta} → {resposta}") for pergunta, resposta, ts in rows
             ])
         except Exception as e:
+            logger.exception("[PRE] Erro ao carregar resultados")
             return f"Erro ao carregar resultados: {e}"

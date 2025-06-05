@@ -21,13 +21,22 @@ services:
       context: ./uni-analytics
     volumes:
       - ./uni-analytics:/app
+      - ./uni-analytics/logs:/app/logs
     depends_on:
       - db
     environment:
+    # Database Configuration
       - DB_HOST=db
       - DB_NAME=moodle
       - DB_USER=moodle
       - DB_PASS=moodle
+      # Logging Configuration
+      - LOG_LEVEL=DEBUG
+      - LOG_RETENTION_DAYS=2
+      - LOG_DIR=/app/logs
+      - LOG_FILENAME=uniAnalytics.log
+      - LOG_ROTATE_WHEN=midnight
+      - LOG_ROTATE_INTERVAL=1
     command: ["python", "main.py"]
     ports:
       - "8050:8050"

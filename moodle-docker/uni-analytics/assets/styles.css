@@ -1,3 +1,6 @@
+/* ===============================
+   ESTILOS GERAIS DA APLICAÇÃO
+   =============================== */
 body {
     background-color: #f4f7fa;
     font-family: 'Segoe UI', sans-serif;
@@ -29,20 +32,21 @@ body {
     margin-bottom: 30px;
 }
 
+/* ===============================
+   ÁREA DO GRÁFICO
+   =============================== */
 .plotly-graph {
     height: auto;
 }
 
-
 /* ===============================
    GRID DO DASHBOARD DO ALUNO
    =============================== */
-
 .dashboard-grid {
     display: grid;
     grid-template-columns: 3fr 1fr;
     grid-template-rows: auto auto;
-    gap: 32px; 
+    gap: 32px;
     padding: 30px;
     max-width: 1200px;
     margin: 0 auto;
@@ -59,12 +63,11 @@ body {
     grid-row: 1;
 }
 
-/* Card dentro da coluna da esquerda */
 .dashboard-grid .coluna-esquerda > .card {
     flex: 1;
 }
 
-/* Coluna da direita (gauge + desempenho) */
+/* Coluna da direita (medidor + desempenho) */
 .coluna-direita {
     display: flex;
     flex-direction: column;
@@ -74,9 +77,8 @@ body {
 }
 
 /* ===============================
-   SECÇÕES INTERNAS COM TÍTULOS
+   TÍTULOS DAS SECÇÕES INTERNAS
    =============================== */
-
 .card-section-title,
 .card-title,
 .card-forum h4,
@@ -91,22 +93,17 @@ body {
 }
 
 /* ===============================
-    DASHBOARD ALUNO
-    BARRAS DE PROGRESSO PERSONALIZADAS
+   BARRAS DE PROGRESSO
    =============================== */
-
-/* Container de cada barra (inclui título e barra visual) */
 .barra-container {
     margin-bottom: 18px;
 }
 
-/* Nome da atividade (ex: Avaliação, Quizz) */
 .barra-label {
     font-size: 14px;
     margin-bottom: 6px;
 }
 
-/* Fundo cinzento da barra */
 .barra-fundo {
     background-color: #e6e6e6;
     border-radius: 20px;
@@ -114,7 +111,6 @@ body {
     position: relative;
 }
 
-/* Parte colorida da barra (largura dinâmica via style no Python) */
 .barra-progresso {
     height: 100%;
     border-radius: 20px;
@@ -124,7 +120,6 @@ body {
     transition: width 0.5s ease;
 }
 
-/* Percentagem que aparece dentro da barra, alinhada à direita */
 .barra-texto {
     position: absolute;
     right: 8px;
@@ -139,62 +134,54 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    height: fit-content; 
+    height: fit-content;
 }
 
 /* ===============================
-   MENSAGENS DO FÓRUM (BLOCO)
+   MENSAGENS DO FÓRUM
    =============================== */
-
-/* Card específico para o bloco de mensagens do fórum */
 .card-forum {
-    width: 250px;                          /* Largura fixa do bloco */
+    width: 250px;
     display: flex;
-    flex-direction: column;               /* Elementos empilhados */
-    align-items: center;                  /* Centralizar conteúdo horizontalmente */  	
+    flex-direction: column;
+    align-items: center;
     min-height: 360px;
 }
 
-/* Container das caixas de criados e respondidos */
 .forum-box {
-    width: 100%;                          /* Ocupa toda a largura do card */
+    width: 100%;
     display: flex;
-    flex-direction: column;               /* Empilha os blocos */
-    gap: 15px; 
-    margin-top: 8px;                            /* Espaço entre os blocos */
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 8px;
 }
 
-/* Estilo comum para os blocos de mensagens (criadas e respondidas) */
 .forum-created-box,
 .forum-replied-box {
-    background-color: #7cc3ac;            /* Verde base */
-    border-radius: 12px;                  /* Cantos arredondados */
-    padding: 20px 10px;                   /* Espaçamento interno */
-    color: white;                        
-    text-align: center;                   /* Alinhamento central do texto */
+    background-color: #7cc3ac;
+    border-radius: 12px;
+    padding: 20px 10px;
+    color: white;
+    text-align: center;
     display: flex;
-    flex-direction: column;               /* Empilha ícone, label e número */
+    flex-direction: column;
     align-items: center;
 }
 
-/* Cor de fundo específica para o bloco de respostas */
 .forum-replied-box {
-    background-color: #a4dfc1;            /* Verde mais claro */
+    background-color: #a4dfc1;
 }
 
-/* Ícone no topo de cada bloco*/
 .forum-icon {
-    width: 36px;                          /* Tamanho do ícone */
-    margin-bottom: 10px;                  /* Espaço abaixo do ícone */
+    width: 36px;
+    margin-bottom: 10px;
 }
 
-/* Texto “Criados” ou “Respondidos” */
 .forum-label {
     font-size: 16px;
     font-weight: bold;
 }
 
-/* Número de mensagens */
 .forum-number {
     font-size: 24px;
     font-weight: bold;
@@ -203,8 +190,6 @@ body {
 /* ===============================
    VOLUME DE INTERAÇÃO
    =============================== */
-
-/* Card específico para o bloco de volume de interação */
 .card-volume {
     width: 250px;
     padding: 20px;
@@ -214,15 +199,12 @@ body {
     height: fit-content;
 }
 
-
-/* Lista dos itens (ficheiros, páginas, links) */
 .volume-list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-/* Cada item da lista de interação */
 .volume-item {
     display: flex;
     align-items: center;
@@ -233,12 +215,10 @@ body {
     font-size: 16px;
 }
 
-/* Número de interações (ex: 50 ficheiros) */
 .volume-number {
     font-weight: bold;
 }
 
-/* Container do ícone com fundo arredondado */
 .volume-icon-bg {
     display: flex;
     justify-content: center;
@@ -248,7 +228,6 @@ body {
     height: 36px;
 }
 
-/* Cores de fundo específicas por tipo */
 .bg-yellow {
     background-color: #f4f7b6;
 }
@@ -262,10 +241,8 @@ body {
 }
 
 /* ===============================
-   PROGRESSO GLOBAL
+   MEDIDOR DE DESEMPENHO GLOBAL
    =============================== */
-
-/* Card específico para o medidor de progresso */
 .card-gauge {
     width: 100%;
     max-width: 280px;
@@ -276,7 +253,6 @@ body {
     align-items: center;
 }
 
-/* Wrapper para limitar tamanho do gráfico */
 .gauge-wrapper {
     width: 100%;
     max-width: 200px;
@@ -284,9 +260,8 @@ body {
 }
 
 /* ===============================
-   DESEMPENHO
+   SECÇÃO DE DESEMPENHO
    =============================== */
-
 .card-desempenho {
     padding: 16px 20px 32px;
     text-align: center;
@@ -304,12 +279,8 @@ body {
     border-radius: 20px;
     border: 2px dashed #169c6d;
     display: inline-block;
-    margin-top: 2px; 
+    margin-top: 2px;
 }
-
-/* ===============================
-   CORES POR NÍVEL DE DESEMPENHO
-   =============================== */
 
 .indicador-expectavel {
     background-color: #c2f0d2;
@@ -318,9 +289,9 @@ body {
 }
 
 .indicador-risco {
-    background-color: #e5f2a1;   
-    color: #5c4700;              
-    border: 2px dashed #f1c232;  
+    background-color: #e5f2a1;
+    color: #5c4700;
+    border: 2px dashed #f1c232;
 }
 
 .indicador-critico {
@@ -329,6 +300,9 @@ body {
     border: 2px dashed #dc3545;
 }
 
+/* ===============================
+   BOTÕES GERAIS
+   =============================== */
 .btn {
     background-color: #169c6d;
     color: white;
@@ -342,4 +316,100 @@ body {
 
 .btn:hover {
     background-color: #169c6d;
+}
+
+/* ===============================
+   FORMULÁRIOS (PERGUNTAS)
+   =============================== */
+.pergunta-card {
+    background-color: #d6eea9;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pergunta-card label {
+    font-weight: bold;
+    font-size: 18px;
+    color: #2c3e50;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.pergunta-opcao {
+    background-color: #b3d88f;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.pergunta-opcao:hover {
+    background-color: #a1c97d;
+    border: 1px solid #7aa95b;
+}
+
+/* Força o Dropdown a mostrar todas as opções de resposta */
+.Select-menu-outer {
+    max-height: none !important;
+}
+
+/* ===============================
+   BOTÕES DE NAVEGAÇÃO ENTRE PERGUNTAS
+   =============================== */
+.btn-nav {
+    font-weight: bold;
+    padding: 10px 22px;
+    border-radius: 20px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    margin-right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-back {
+    background-color: #fdd762;
+    color: #222;
+}
+
+.btn-next {
+    background-color: #20c997;
+    color: white;
+}
+
+.btn-nav:hover {
+    opacity: 0.9;
+}
+
+.btn-nav i {
+    margin-left: 8px;
+}
+
+/* ===============================
+   CAMPOS DE TEXTO (INPUTS & TEXTAREA) MAIS SUAVES
+   =============================== */
+input#nova-pergunta,
+textarea#opcoes-resposta,
+input#id-pergunta-apagar {
+    background-color: #fdfffa;
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 16px;
+    width: 100%;
+    color: #2c3e50;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #7a9973;
+    opacity: 1;
 }
