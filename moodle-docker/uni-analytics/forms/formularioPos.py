@@ -2,7 +2,7 @@ import dash
 from dash import html, dcc, Input, State, Output
 from dash import ALL
 from dash.exceptions import PreventUpdate
-from db.formsDatabase import connect_to_forms_db
+from db.uniAnalytics import connect_to_forms_db
 
 
 # Layout da página do formulário de Pós-Avaliação
@@ -52,9 +52,9 @@ def register_callbacks(app):
             conn = connect_to_forms_db()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, pergunta
-                FROM formularios_perguntas
-                WHERE tipo_formulario = 'pos'
+                SELECT id, question
+                FROM forms_questions
+                WHERE form_type = 'pos'
                 ORDER BY id ASC
             """)
             perguntas = cursor.fetchall()
@@ -91,10 +91,10 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("SELECT resposta FROM formularios_respostas WHERE pergunta_id = ?", (pergunta_id,))
+            cursor.execute("SELECT id, answer FROM forms_answers WHERE question_id = ?", (pergunta_id,))
             rows = cursor.fetchall()
             conn.close()
-            opcoes = [r[0] for r in rows]
+            opcoes = [{"label": r[1], "value": r[0]} for r in rows]  # value = id
         except Exception as e:
             print("[mostrar_pergunta POS] Erro ao carregar opções:", e)
             opcoes = []
@@ -103,9 +103,9 @@ def register_callbacks(app):
             html.Label(pergunta_atual["texto"]),
             dcc.Dropdown(
                 id={"type": "resposta-pos", "index": etapa},
-                options=[{"label": o, "value": o} for o in opcoes],
+                options=opcoes,
                 placeholder="Seleciona uma opção",
-                value=respostas.get(str(pergunta_id))
+                value=respostas.get(str(pergunta_id))  # resposta guardada é o ID
             )
         ]), {"display": "inline-block"}, {"display": "none"}
 
@@ -126,7 +126,7 @@ def register_callbacks(app):
 
         if etapa > 0 and etapa <= len(perguntas) and resposta_atual_lista and resposta_atual_lista[0] is not None:
             pergunta_id = perguntas[etapa - 1]["id"]
-            respostas[str(pergunta_id)] = resposta_atual_lista[0]
+            respostas[str(pergunta_id)] = resposta_atual_lista[0]  # guarda o ID da resposta
 
         return etapa + 1, respostas
 
@@ -145,10 +145,10 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            for pergunta_id_str, resposta in respostas.items():
+            for pergunta_id_str, answer_id in respostas.items():
                 cursor.execute(
-                    "INSERT INTO alunos_respostas (pergunta_id, resposta, aluno_id) VALUES (?, ?, ?)",
-                    (int(pergunta_id_str), resposta, aluno_id)
+                    "INSERT INTO forms_student_answers (student_id, question_id, answer_id) VALUES (?, ?, ?)",
+                    (aluno_id, int(pergunta_id_str), int(answer_id))
                 )
             conn.commit()
             conn.close()
@@ -168,10 +168,11 @@ def register_callbacks(app):
             conn = connect_to_forms_db()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT p.pergunta, a.resposta, a.created_at
-                FROM alunos_respostas a
-                JOIN formularios_perguntas p ON a.pergunta_id = p.id
-                WHERE p.tipo_formulario = 'pos'
+                SELECT q.question, r.answer, a.created_at
+                FROM forms_student_answers a
+                JOIN forms_questions q ON a.question_id = q.id
+                JOIN forms_answers r ON a.answer_id = r.id
+                WHERE q.form_type = 'pos'
                 ORDER BY a.created_at DESC
                 LIMIT 10
             """)

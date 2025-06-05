@@ -2,7 +2,7 @@ import dash
 from dash import html, dcc
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
 from forms import formularioMain  # ← Lógica que decide qual formulário mostrar
-from db.formsDatabase import init_forms_table  # ← Função para criar a DB/tabela se não existir
+from db.uniAnalytics import init_forms_table  # ← Função para criar a DB/tabela se não existir
 
 # Inicializar tabela da base de dados (se necessário)
 print("A inicializar a base de dados...")
@@ -38,7 +38,7 @@ def display_page(pathname):
                 dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Administração de Formulários", href="/forms/formulariosAdmin", style={"display": "block", "margin": "10px"})
+                dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", style={"display": "block", "margin": "10px"})
             ])
         ])
     elif pathname == "/dashboards/dashboardGeral":

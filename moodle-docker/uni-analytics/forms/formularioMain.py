@@ -5,7 +5,7 @@ def get_layout(pathname):
         return formularioPre.layout()
     elif pathname == "/forms/formularioPos":
         return formularioPos.layout()
-    elif pathname == "/forms/formulariosAdmin":
+    elif pathname == "/forms/formularioAdmin":
         return formulariosAdmin.layout()
     return None
 

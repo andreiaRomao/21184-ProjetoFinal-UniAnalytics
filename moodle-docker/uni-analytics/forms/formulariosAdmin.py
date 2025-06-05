@@ -1,7 +1,7 @@
 from dash import html, dcc, Input, Output, State, ctx
 import dash
 import datetime
-from db.formsDatabase import connect_to_forms_db
+from db.uniAnalytics import connect_to_forms_db
 
 # Layout principal da página de administração de perguntas
 def layout():
@@ -77,14 +77,14 @@ def register_callbacks(app):
             now = datetime.datetime.now().isoformat()
 
             cursor.execute("""
-                INSERT INTO formularios_perguntas (pergunta, tipo_formulario, created_at, updated_at)
+                INSERT INTO forms_questions (question, form_type, created_at, updated_at)
                 VALUES (?, ?, ?, ?)
             """, (pergunta, tipo, now, now))
             pergunta_id = cursor.lastrowid
 
             for opcao in opcoes:
                 cursor.execute("""
-                    INSERT INTO formularios_respostas (pergunta_id, resposta, created_at, updated_at)
+                    INSERT INTO forms_answers (question_id, answer, created_at, updated_at)
                     VALUES (?, ?, ?, ?)
                 """, (pergunta_id, opcao, now, now))
 
@@ -102,18 +102,18 @@ def register_callbacks(app):
 
             if tipo_form:
                 cursor.execute("""
-                    SELECT p.id, p.pergunta, p.tipo_formulario, p.created_at, p.updated_at, r.resposta
-                    FROM formularios_perguntas p
-                    LEFT JOIN formularios_respostas r ON p.id = r.pergunta_id
-                    WHERE p.tipo_formulario = ?
-                    ORDER BY p.created_at DESC
+                    SELECT q.id, q.question, q.form_type, q.created_at, q.updated_at, a.answer
+                    FROM forms_questions q
+                    LEFT JOIN forms_answers a ON q.id = a.question_id
+                    WHERE q.form_type = ?
+                    ORDER BY q.created_at DESC
                 """, (tipo_form,))
             else:
                 cursor.execute("""
-                    SELECT p.id, p.pergunta, p.tipo_formulario, p.created_at, p.updated_at, r.resposta
-                    FROM formularios_perguntas p
-                    LEFT JOIN formularios_respostas r ON p.id = r.pergunta_id
-                    ORDER BY p.created_at DESC
+                    SELECT q.id, q.question, q.form_type, q.created_at, q.updated_at, a.answer
+                    FROM forms_questions q
+                    LEFT JOIN forms_answers a ON q.id = a.question_id
+                    ORDER BY q.created_at DESC
                 """)
             rows = cursor.fetchall()
             conn.close()
@@ -188,8 +188,8 @@ def register_callbacks(app):
         try:
             conn = connect_to_forms_db()
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM formularios_respostas WHERE pergunta_id = ?", (pergunta_id,))
-            cursor.execute("DELETE FROM formularios_perguntas WHERE id = ?", (pergunta_id,))
+            cursor.execute("DELETE FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+            cursor.execute("DELETE FROM forms_questions WHERE id = ?", (pergunta_id,))
             conn.commit()
             conn.close()
             return f"Pergunta ID {pergunta_id} apagada com sucesso.", listar_perguntas_html(tipo_form)
