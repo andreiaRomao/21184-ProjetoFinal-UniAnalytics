@@ -44,29 +44,47 @@ def fetch_all_completions():
         conn.close()
         return []
 
-def calcular_pct_completions(dados, aluno_id, course_id, tipos, apenas_ids=None):
-    # Filtra dados relevantes para o aluno e curso
-    dados_filtrados = [
-        d for d in dados
-        if d['course_id'] == course_id
-        and d['module_type'] in tipos
-        and (apenas_ids is None or d['coursemodule_id'] in apenas_ids)
-    ]
+def fetch_all_forum_posts():
+    from db.moodleConnection import connect_to_moodle_db
+    conn = connect_to_moodle_db()
+    query = """
+        SELECT
+            u.id AS userid,
+            u.firstname,
+            u.lastname,
+            u.email,
+            COALESCE(r.shortname, 'none') AS role,
+            f.course AS course_id,
+            p.id AS post_id,
+            p.parent,
+            p.discussion,
+            p.subject,
+            p.created AS timecreated,
+            CASE
+                WHEN p.parent = 0 THEN 'topic'
+                ELSE 'reply'
+            END AS post_type
+        FROM mdl_forum_posts p
+        JOIN mdl_forum_discussions d ON p.discussion = d.id
+        JOIN mdl_forum f ON d.forum = f.id
+        JOIN mdl_user u ON p.userid = u.id
+        LEFT JOIN mdl_context ctx ON ctx.contextlevel = 50 AND ctx.instanceid = f.course
+        LEFT JOIN mdl_role_assignments ra ON ra.contextid = ctx.id AND ra.userid = u.id
+        LEFT JOIN mdl_role r ON r.id = ra.roleid
+        WHERE u.deleted = 0;
+    """
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except Exception as e:
+        print("Erro ao obter dados dos fóruns:", e)
+        conn.close()
+        return []
 
-    # Conta apenas os módulos únicos disponíveis no curso
-    ids_unicos = set(d['coursemodule_id'] for d in dados_filtrados)
 
-    # Agora conta os completados pelo aluno
-    completados = set(
-        d['coursemodule_id']
-        for d in dados_filtrados
-        if d.get('userid') == aluno_id and d.get('completionstate') == 1
-    )
-
-    total = len(ids_unicos)
-    concluidos = len(completados)
-
-    return round(concluidos / total * 100) if total > 0 else 0
 
 def fetch_user_forum_created_posts(aluno_id, course_id):
     conn = connect_to_moodle_db()

@@ -8,6 +8,30 @@ import traceback
 # Funções de lógica modular
 # =========================
 
+def calcular_pct_completions(dados, aluno_id, course_id, tipos, apenas_ids=None):
+    # Filtra dados relevantes para o aluno e curso
+    dados_filtrados = [
+        d for d in dados
+        if d['course_id'] == course_id
+        and d['module_type'] in tipos
+        and (apenas_ids is None or d['coursemodule_id'] in apenas_ids)
+    ]
+
+    # Conta apenas os módulos únicos disponíveis no curso
+    ids_unicos = set(d['coursemodule_id'] for d in dados_filtrados)
+
+    # Agora conta os completados pelo aluno
+    completados = set(
+        d['coursemodule_id']
+        for d in dados_filtrados
+        if d.get('userid') == aluno_id and d.get('completionstate') == 1
+    )
+
+    total = len(ids_unicos)
+    concluidos = len(completados)
+
+    return round(concluidos / total * 100) if total > 0 else 0
+
 def obter_grupo_aluno(dados, aluno_id, course_id):
     for d in dados:
         if d['userid'] == aluno_id and d['course_id'] == course_id and d.get("groupname"):
@@ -45,11 +69,26 @@ def calcular_desempenho_etl(dados, aluno_id, course_id):
                 continue
     if soma < 3.5:
         return "Crítico"
-    elif soma < 4.0:
+    elif soma < 4.5:
         return "Em Risco"
     else:
         return "Expectável"
 
+def contar_topicos_criados(dados, aluno_id, course_id):
+    return sum(
+        1 for d in dados
+        if d['userid'] == aluno_id
+        and d['course_id'] == course_id
+        and d['post_type'] == 'topic'
+    )
+
+def contar_respostas(dados, aluno_id, course_id):
+    return sum(
+        1 for d in dados
+        if d['userid'] == aluno_id
+        and d['course_id'] == course_id
+        and d['post_type'] == 'reply'
+    )
 
 # =========================
 # Layout principal
@@ -59,24 +98,26 @@ def layout(aluno_id, course_id):
     try:
         dados_completions = qa.fetch_all_completions()
 
+        dados_forum = qa.fetch_all_forum_posts()
+
         grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)
         assigns_validos = obter_assigns_validos(dados_completions, course_id, grupo_aluno)
 
-        avaliacao = qa.calcular_pct_completions(
+        avaliacao = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
         )
-        formativas = qa.calcular_pct_completions(
+        formativas = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['page', 'resource']
         )
-        quizz = qa.calcular_pct_completions(
+        quizz = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['quiz']
         )
-        progresso_global = qa.calcular_pct_completions(
+        progresso_global = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['assign', 'page', 'resource', 'quiz']
         )
 
-        forum_criados = qa.fetch_user_forum_created_posts(aluno_id, course_id)
-        forum_respostas = qa.fetch_user_forum_replies(aluno_id, course_id)
+        forum_criados = contar_topicos_criados(dados_forum, aluno_id, course_id)
+        forum_respostas = contar_respostas(dados_forum, aluno_id, course_id)
         desempenho = calcular_desempenho_etl(dados_completions, aluno_id, course_id)
 
     except Exception as e:
