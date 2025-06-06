@@ -90,6 +90,16 @@ def contar_respostas(dados, aluno_id, course_id):
         and d['post_type'] == 'reply'
     )
 
+def contar_interacoes_aluno(dados, aluno_id, course_id):
+    tipos = ['Ficheiros', 'Páginas', 'Links', 'Livros', 'Pastas', 'Quizzes']
+    contagem = {tipo: 0 for tipo in tipos}
+    for d in dados:
+        if d['userid'] == aluno_id and d['courseid'] == course_id:
+            tipo = d.get('tipo_interacao')
+            if tipo in contagem:
+                contagem[tipo] += 1
+    return contagem
+
 # =========================
 # Layout principal
 # =========================
@@ -97,8 +107,8 @@ def contar_respostas(dados, aluno_id, course_id):
 def layout(aluno_id, course_id):
     try:
         dados_completions = qa.fetch_all_completions()
-
         dados_forum = qa.fetch_all_forum_posts()
+        dados_interacoes = qa.fetch_all_interacoes()
 
         grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)
         assigns_validos = obter_assigns_validos(dados_completions, course_id, grupo_aluno)
@@ -120,6 +130,8 @@ def layout(aluno_id, course_id):
         forum_respostas = contar_respostas(dados_forum, aluno_id, course_id)
         desempenho = calcular_desempenho_etl(dados_completions, aluno_id, course_id)
 
+        interacoes = contar_interacoes_aluno(dados_interacoes, aluno_id, course_id)
+
     except Exception as e:
         print("[ERRO] (layout) Falha ao gerar o dashboard do aluno.")
         traceback.print_exc()
@@ -129,7 +141,7 @@ def layout(aluno_id, course_id):
         html.Div(className="coluna-esquerda", children=[
             render_progresso_atividades(avaliacao, formativas, quizz),
             render_mensagens_forum(forum_criados, forum_respostas),
-            render_volume_interacao(50, 70, 25)
+            render_volume_interacao(interacoes)
         ]),
         html.Div(className="coluna-direita", children=[
             render_progresso_global(progresso_global),
@@ -166,31 +178,28 @@ def render_mensagens_forum(criados, respondidos):
         ])
     ])
 
-def render_volume_interacao(ficheiros, paginas, links):
+def render_volume_interacao(contagem):
+    icons = {
+        "Ficheiros": "mdi:folder-outline",
+        "Páginas": "mdi:file-document-outline",
+        "Links": "mdi:link-variant",
+        "Livros": "mdi:book-open-page-variant",            # ← este funciona
+        "Pastas": "mdi:folder-multiple-outline",           # ← existe
+        "Quizzes": "mdi:clipboard-text-outline"            # ← melhor para quizzes
+    }
+    
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal"]
+
     return html.Div(className="card card-volume", children=[
         html.H4("Volume de Interação", className="card-section-title"),
         html.Ul(className="volume-list", children=[
             html.Li(className="volume-item", children=[
-                html.Div(className="volume-icon-bg bg-yellow", children=[
-                    DashIconify(icon="mdi:folder-outline", width=24, color="white")
+                html.Div(className=f"volume-icon-bg {cores[i]}", children=[
+                    DashIconify(icon=icons[tipo], width=24, color="white")
                 ]),
-                html.Span("Ficheiros"),
-                html.Span(str(ficheiros), className="volume-number")
-            ]),
-            html.Li(className="volume-item", children=[
-                html.Div(className="volume-icon-bg bg-green", children=[
-                    DashIconify(icon="mdi:file-document-outline", width=24, color="white")
-                ]),
-                html.Span("Páginas"),
-                html.Span(str(paginas), className="volume-number")
-            ]),
-            html.Li(className="volume-item", children=[
-                html.Div(className="volume-icon-bg bg-darkgreen", children=[
-                    DashIconify(icon="mdi:link-variant", width=24, color="white")
-                ]),
-                html.Span("Link"),
-                html.Span(str(links), className="volume-number")
-            ])
+                html.Span(tipo),
+                html.Span(str(contagem.get(tipo, 0)), className="volume-number")
+            ]) for i, tipo in enumerate(icons)
         ])
     ])
 

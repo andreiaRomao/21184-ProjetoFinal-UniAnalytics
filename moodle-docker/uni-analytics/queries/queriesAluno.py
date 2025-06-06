@@ -8,6 +8,7 @@ def fetch_all_completions():
         SELECT
             cm.id AS coursemodule_id,
             cm.course AS course_id,
+            cm.added AS timecreated,
             m.name AS module_type,
             cmc.userid,
             cmc.completionstate,
@@ -31,7 +32,7 @@ def fetch_all_completions():
             ON gm.userid = cmc.userid
         LEFT JOIN mdl_groups g
             ON g.id = gm.groupid
-        WHERE cm.completion > 0;
+        WHERE cm.completion > 0;        
     """
     try:
         cursor = conn.cursor(dictionary=True)
@@ -52,13 +53,9 @@ def fetch_all_forum_posts():
             u.id AS userid,
             u.firstname,
             u.lastname,
-            u.email,
             COALESCE(r.shortname, 'none') AS role,
             f.course AS course_id,
             p.id AS post_id,
-            p.parent,
-            p.discussion,
-            p.subject,
             p.created AS timecreated,
             CASE
                 WHEN p.parent = 0 THEN 'topic'
@@ -84,80 +81,48 @@ def fetch_all_forum_posts():
         conn.close()
         return []
 
-
-
-def fetch_user_forum_created_posts(aluno_id, course_id):
-    conn = connect_to_moodle_db()
-    query = """
-        SELECT COUNT(*) AS total_topicos_do_aluno
-        FROM mdl_forum_posts p
-        JOIN mdl_forum_discussions d
-          ON p.discussion = d.id
-        JOIN mdl_forum f
-          ON d.forum = f.id
-        JOIN mdl_user u
-          ON p.userid = u.id
-        JOIN mdl_context ctx
-          ON ctx.contextlevel = 50
-             AND ctx.instanceid = f.course
-        JOIN mdl_role_assignments ra
-          ON ra.contextid = ctx.id
-             AND ra.userid    = u.id
-        JOIN mdl_role r
-          ON r.id        = ra.roleid
-             AND r.shortname = 'student'
-        WHERE
-          f.course   = %s
-          AND u.id    = %s
-          AND p.parent = 0
-          AND u.deleted = 0;
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, (course_id, aluno_id))
-        row = cursor.fetchone()
-        conn.close()
-        return int(row[0]) if row and row[0] is not None else 0
-    except Exception as e:
-        print("Erro ao buscar mensagens criadas no fórum:", e)
-        conn.close()
-        return 0
-
-def fetch_user_forum_replies(aluno_id, course_id):
+def fetch_all_interacoes():
+    from db.moodleConnection import connect_to_moodle_db
     conn = connect_to_moodle_db()
     query = """
         SELECT
-          COUNT(*) AS total_respostas
-        FROM mdl_forum_posts p
-        JOIN mdl_forum_discussions d
-          ON p.discussion = d.id
-        JOIN mdl_forum f
-          ON d.forum = f.id
-        JOIN mdl_user u
-          ON p.userid = u.id
-        JOIN mdl_context ctx
-          ON ctx.contextlevel = 50
-             AND ctx.instanceid = f.course
-        JOIN mdl_role_assignments ra
-          ON ra.contextid = ctx.id
-             AND ra.userid = u.id
-        JOIN mdl_role r
-          ON r.id = ra.roleid
-             AND r.shortname = 'student'
-        WHERE
-          f.course   = %s
-          AND p.parent <> 0
-          AND u.deleted = 0
-          AND p.userid  = %s;
+          l.userid,
+          l.courseid,
+          l.timecreated,
+          CASE
+            WHEN l.eventname LIKE '%mod_resource%' THEN 'Ficheiros'
+            WHEN l.eventname LIKE '%mod_page%'     THEN 'Páginas'
+            WHEN l.eventname LIKE '%mod_url%'      THEN 'Links'
+            WHEN l.eventname LIKE '%mod_book%'     THEN 'Livros'
+            WHEN l.eventname LIKE '%mod_folder%'   THEN 'Pastas'
+            WHEN l.eventname LIKE '%mod_quiz%'     THEN 'Quizzes'
+            WHEN l.eventname LIKE '%mod_assign%'   THEN 'Tarefas'
+            WHEN l.eventname LIKE '%mod_forum%'    THEN 'Fóruns'
+            ELSE 'Outro'
+          END AS tipo_interacao
+        FROM mdl_logstore_standard_log l
+        WHERE l.edulevel = 2
+          AND l.action IN ('viewed', 'launched')
+          AND (
+            l.eventname LIKE '%mod_resource%' OR
+            l.eventname LIKE '%mod_page%'     OR
+            l.eventname LIKE '%mod_url%'      OR
+            l.eventname LIKE '%mod_book%'     OR
+            l.eventname LIKE '%mod_folder%'   OR
+            l.eventname LIKE '%mod_quiz%'     OR
+            l.eventname LIKE '%mod_assign%'   OR
+            l.eventname LIKE '%mod_forum%'
+          );
     """
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query, (course_id, aluno_id))
-        row = cursor.fetchone()
-        conn.close()
-        return int(row[0]) if row and row[0] is not None else 0
-    except Exception as e:
-        print("Erro ao executar a query de respostas do fórum:", e)
-        conn.close()
-        return 0
 
+    conn = connect_to_moodle_db()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except Exception as e:
+        print("Erro ao obter dados das interações:", e)
+        conn.close()
+        return []
