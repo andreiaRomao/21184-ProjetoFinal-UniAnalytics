@@ -240,6 +240,17 @@ body {
     background-color: #78c4ab;
 }
 
+.bg-blue {
+    background-color: #9cc2f3;
+}
+
+.bg-orange {
+    background-color: #ffd59a;
+}
+
+.bg-teal {
+    background-color: #b2d7d5;
+}
 /* ===============================
    MEDIDOR DE DESEMPENHO GLOBAL
    =============================== */

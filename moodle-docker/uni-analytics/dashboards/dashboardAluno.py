@@ -183,11 +183,11 @@ def render_volume_interacao(contagem):
         "Ficheiros": "mdi:folder-outline",
         "Páginas": "mdi:file-document-outline",
         "Links": "mdi:link-variant",
-        "Livros": "mdi:book-open-page-variant",            # ← este funciona
-        "Pastas": "mdi:folder-multiple-outline",           # ← existe
-        "Quizzes": "mdi:clipboard-text-outline"            # ← melhor para quizzes
+        "Livros": "mdi:book-open-page-variant",
+        "Pastas": "mdi:folder-outline",
+        "Quizzes": "mdi:clipboard-outline"
     }
-    
+
     cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal"]
 
     return html.Div(className="card card-volume", children=[
