@@ -4,3 +4,4 @@ plotly==5.22.0
 pandas==2.2.2
 mysql-connector-python==8.3.0
 dash-iconify
+schedule

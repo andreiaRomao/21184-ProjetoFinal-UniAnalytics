@@ -1,7 +1,7 @@
 from dash import html, dcc, Input, Output, State, ctx
 import dash
 import datetime
-from db.uniAnalytics import connect_to_forms_db
+from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 
 # Layout principal da página de administração de perguntas
@@ -96,7 +96,7 @@ def register_callbacks(app):
             return "A pergunta não pode ter mais de seis opções de resposta.", dash.no_update
 
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
             now = datetime.datetime.now().isoformat()
 
@@ -130,7 +130,7 @@ def register_callbacks(app):
     # Gera a lista de perguntas formatada
     def listar_perguntas_html(tipo_form=None):
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
 
             # Query dependendo se há filtro de tipo de formulário
@@ -232,7 +232,7 @@ def register_callbacks(app):
             return "Por favor insere um ID válido para apagar.", dash.no_update, dash.no_update
 
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
             cursor.execute("DELETE FROM forms_answers WHERE question_id = ?", (pergunta_id,))
             cursor.execute("DELETE FROM forms_questions WHERE id = ?", (pergunta_id,))

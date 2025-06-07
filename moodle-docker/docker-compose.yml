@@ -1,4 +1,6 @@
+version: '3.8'
 
+  # Serviço principal Moodle com Apache + PHP
 services:
   moodle:
     image: moodlehq/moodle-php-apache:8.1
@@ -16,30 +18,65 @@ services:
       - MOODLE_DOCKER_DBUSER=moodle
       - MOODLE_DOCKER_DBPASS=moodle
 
+  # Serviço principal da aplicação de Analytics com Dash
   uni-analytics:
     build:
-      context: ./uni-analytics
+      context: ./uni-analytics                         # Pasta onde está o Dockerfile
     volumes:
-      - ./uni-analytics:/app
-      - ./uni-analytics/logs:/app/logs
+      - ./uni-analytics:/app                           # Código da aplicação
+      - ./uni-analytics/logs:/app/logs                 # Diretório de logs persistente
     depends_on:
       - db
     environment:
-    # Database Configuration
+      # Configuração da base de dados
       - DB_HOST=db
       - DB_NAME=moodle
       - DB_USER=moodle
       - DB_PASS=moodle
-      # Logging Configuration
+
+      # Configuração de logs
       - LOG_LEVEL=DEBUG
       - LOG_RETENTION_DAYS=2
       - LOG_DIR=/app/logs
       - LOG_FILENAME=uniAnalytics.log
       - LOG_ROTATE_WHEN=midnight
       - LOG_ROTATE_INTERVAL=1
-    command: ["python", "main.py"]
+
+    command: ["python", "main.py"]  # Arranca o dashboard web
     ports:
-      - "8050:8050"
+      - "8050:8050"  # Acesso ao Dash em http://localhost:8050
+
+  # Serviço independente para executar a sincronização periódica de dados
+  scheduler:
+    build:
+      context: ./uni-analytics                         # Mesmo código base
+    volumes:
+      - ./uni-analytics:/app
+      - ./uni-analytics/logs:/app/logs
+    depends_on:
+      - db
+    environment:
+      # Configuração da base de dados
+      - DB_HOST=db
+      - DB_NAME=moodle
+      - DB_USER=moodle
+      - DB_PASS=moodle
+
+      # Configuração de logs
+      - LOG_LEVEL=DEBUG
+      - LOG_RETENTION_DAYS=2
+      - LOG_DIR=/app/logs
+      - LOG_FILENAME=uniAnalytics.log
+      - LOG_ROTATE_WHEN=midnight
+      - LOG_ROTATE_INTERVAL=1
+
+      # Definição da hora de execução da sincronização
+      - SYNC_HOUR=00
+      - SYNC_MINUTE=00
+
+    command: ["python", "scheduler.py"]  # Ficheiro que corre continuamente no fundo
+
+  # Base de dados MySQL
   db:
     image: mysql:8.0
     restart: always
@@ -49,7 +86,8 @@ services:
       MYSQL_PASSWORD: moodle
       MYSQL_ROOT_PASSWORD: root
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql  # Volume para persistência dos dados da base de dados
 
+# Volume persistente da base de dados
 volumes:
   db_data:

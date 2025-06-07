@@ -2,11 +2,11 @@ import dash
 from dash import html, dcc
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
 from forms import formularioMain  # ← Lógica que decide qual formulário mostrar
-from db.uniAnalytics import init_forms_table  # ← Função para criar a DB/tabela se não existir
+from db.uniAnalytics import init_uni_analytics_db  # ← Função para criar a DB/tabela se não existir
 
 # Inicializar tabela da base de dados (se necessário)
 print("A inicializar a base de dados...")
-init_forms_table()
+init_uni_analytics_db()
 print("Base de dados pronta.")
 
 # App Dash

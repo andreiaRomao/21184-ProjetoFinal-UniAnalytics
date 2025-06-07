@@ -2,7 +2,7 @@ import dash
 from dash import html, dcc, Input, State, Output
 from dash import ALL
 from dash.exceptions import PreventUpdate
-from db.uniAnalytics import connect_to_forms_db
+from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 
 # Layout da página de formulário de Pré-Avaliação
@@ -49,7 +49,7 @@ def register_callbacks(app):
     def carregar_perguntas(n):
         logger.debug(f"[PRE] Iniciar carregamento de perguntas com n_intervals={n}")
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
             query = """
                 SELECT id, question
@@ -96,7 +96,7 @@ def register_callbacks(app):
         pergunta_id = pergunta_atual["id"]
 
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
             query = "SELECT id, answer FROM forms_answers WHERE question_id = ?"
             params = (pergunta_id,)
@@ -155,7 +155,7 @@ def register_callbacks(app):
             return "Por favor responde a todas as perguntas antes de submeter."
 
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
             for pergunta_id_str, answer_id in respostas.items():
                 query = """
@@ -181,7 +181,7 @@ def register_callbacks(app):
     )
     def ver_resultados(n):
         try:
-            conn = connect_to_forms_db()
+            conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
             query = """
                 SELECT q.question, r.answer, a.created_at
