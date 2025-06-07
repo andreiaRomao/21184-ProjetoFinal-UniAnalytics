@@ -535,3 +535,103 @@ textarea::placeholder {
 .bg-verde-suave {
   background-color: #f4faf4;
 }
+
+/* ===============================
+   GRELHA DE TOPO DO DASHBOARD
+   =============================== */
+.topo-dashboard {
+  background-color: white; 
+  padding: 30px 20px 20px 20px; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+}
+
+.linha-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.info-utilizador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  font-size: 16px;
+  color: #2c3e50;
+}
+
+.avatar-icon {
+  width: 36px;
+  height: 36px;
+  background-color: #2c3e50;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.nome-utilizador {
+  font-weight: bold;
+}
+
+/* LINHA INFERIOR: barra com curso + ano letivo */
+.linha-inferior {
+  padding: 0;
+  margin: 0;
+}
+
+.barra-uc {
+  background-color: #1e1e1e;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;   
+  padding: 12px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  box-sizing: border-box; 
+  border-radius: 12px;  
+}
+
+.ano-letivo {
+  background-color: #edf4b9;
+  color: #1a1a1a;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+.nome-curso {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+
+.dropdown-curso {
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-uc-selector {
+  width: 220px;
+  font-size: 14px;
+  padding: 6px;
+}
+
+.grupo-direita-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.barra-uc-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  box-sizing: border-box;
+}

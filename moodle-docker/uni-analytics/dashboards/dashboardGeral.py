@@ -1,7 +1,9 @@
 from dash import html, dcc, Input, Output
 import plotly.express as px
 import pandas as pd
+import queries.queriesGeral as qg
 import traceback
+import re
 
 # =========================
 # DADOS MARTELADOS POR ANO
@@ -35,14 +37,100 @@ def register_callbacks(app):
         return construir_figura_linhas(ano), construir_figura_pie(ano)
 
 # =========================
+# Função auxiliar: Info topo do dashboard
+# =========================
+
+def get_dashboard_top_info(userid, course_id):
+    try:
+        forum_data = qg.fetch_all_forum_posts()
+        cursos = qg.fetch_user_course_data()
+
+        utilizador = next((x for x in forum_data if x['userid'] == userid and x['course_id'] == course_id), None)
+        curso = cursos[cursos['curso'].notna() & (cursos['curso'].str.contains(str(course_id)))].head(1)
+        nome_curso = curso['curso'].values[0] if not curso.empty else f"{course_id} - UC Desconhecida"
+
+        if utilizador:
+            nome = f"{utilizador['firstname']} {utilizador['lastname']}"
+            papel_raw = utilizador['role'].lower()
+            papel = "ALUNO" if "student" in papel_raw else "PROFESSOR"
+        else:
+            nome = "Utilizador Desconhecido"
+            papel = "-"
+
+        return nome, papel, nome_curso
+
+    except Exception as e:
+        print("[ERRO] (get_dashboard_top_info):", e)
+        return "Erro", "Erro", "Erro"
+
+# =========================
+# Obter cursos disponíveis para dropdown
+# =========================
+
+def obter_opcoes_dropdown_cursos():
+    try:
+        cursos = qg.fetch_user_course_data()
+        cursos_validos = cursos[cursos['curso'].notna()]
+
+        opcoes = []
+
+        for _, linha in cursos_validos.iterrows():
+            nome = linha['curso']
+            match = re.match(r'^(\d+)\s*-\s*(.*)', nome)
+
+            if match:
+                # Curso começa por número → usa esse número como valor
+                course_id = int(match.group(1))
+                label = nome
+                opcoes.append({
+                    "label": label,
+                    "value": course_id
+                })
+            else:
+                # Curso sem ID → ignora ou trata separadamente
+                # print(f"[IGNORADO] Curso sem ID numérico: {nome}")
+                # Opcional: adicionar ao dropdown com o nome como valor?
+                opcoes.append({"label": nome, "value": nome})
+        return opcoes
+
+    except Exception as e:
+        print("[ERRO] (obter_opcoes_dropdown_cursos):", e)
+        return []
+
+# =========================
 # Layout principal
 # =========================
 
-def layout():
+def layout(userid, course_id):
     try:
-        ano_inicial = "2023/2024"
+        anos_disponiveis = sorted(dados_pie_por_ano.keys())
+        ano_inicial = anos_disponiveis[-1] if anos_disponiveis else ""
+        nome, papel, curso = get_dashboard_top_info(userid, course_id)
+        dropdown_cursos = obter_opcoes_dropdown_cursos()
 
         return html.Div(className="dashboard-geral", children=[
+            html.Div(className="topo-dashboard", children=[
+                html.Div(className="linha-superior", children=[
+                    html.Div(className="info-utilizador", children=[
+                        html.Div(className="avatar-icon"),
+                        html.Span(f"[{papel}] {nome}", className="nome-utilizador")
+                    ]),
+                    html.Div(className="dropdown-curso", children=[
+                        dcc.Dropdown(
+                            id="dropdown_uc",
+                            options=dropdown_cursos,
+                            value=course_id,
+                            clearable=False,
+                            className="dropdown-uc-selector"
+                        )
+                    ])
+                ]),
+                html.Div(className="barra-uc", children=[
+                    html.Span(curso, className="nome-curso"),
+                    html.Span(ano_inicial, className="ano-letivo")
+                ])
+            ]),
+
             html.H3("Dashboard Geral de Unidade Curricular", style={"textAlign": "center"}),
 
             html.Div(className="linha-flex", children=[
@@ -153,9 +241,6 @@ def construir_figura_linhas(ano_selecionado):
         xaxis=dict(tickmode="array", tickvals=anos_eixo)
     )
     return fig
-
-
-
 
 def construir_figura_pie(ano):
     dados = dados_pie_por_ano[ano]

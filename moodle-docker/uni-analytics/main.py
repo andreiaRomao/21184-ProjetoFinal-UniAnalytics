@@ -43,7 +43,7 @@ def display_page(pathname):
             ])
         ])
     elif pathname == "/dashboards/dashboardGeral":
-        return dashboardGeral.layout()
+        return dashboardGeral.layout(aluno_id, course_id)
     elif pathname == "/dashboards/dashboardAluno":
         return dashboardAluno.layout(aluno_id, course_id)
     elif pathname == "/dashboards/dashboardProfessor":
