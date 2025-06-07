@@ -28,6 +28,7 @@ def display_page(pathname):
 
     aluno_id = 105
     course_id = 2
+    professor_id = 2
 
     if pathname == "/" or pathname == "/home":
         return html.Div([
@@ -46,7 +47,7 @@ def display_page(pathname):
     elif pathname == "/dashboards/dashboardAluno":
         return dashboardAluno.layout(aluno_id, course_id)
     elif pathname == "/dashboards/dashboardProfessor":
-        return dashboardProfessor.layout()
+        return dashboardProfessor.layout(professor_id, course_id)
 
     # Verifica se é um formulário e retorna o layout correspondente
     form_layout = formularioMain.get_layout(pathname)

@@ -424,3 +424,14 @@ textarea::placeholder {
     color: #7a9973;
     opacity: 1;
 }
+
+/* ===============================
+   GRELHA DE BLOCOS DO FÓRUM (PROFESSOR)
+   =============================== */
+.forum-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+    margin-top: 8px;
+}
