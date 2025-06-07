@@ -1,5 +1,6 @@
 import pandas as pd
 from db.moodleConnection import connect_to_moodle_db
+import queries.queriesGeral as qg
 
 def fetch_conteudos_disponibilizados():
     conn = connect_to_moodle_db()

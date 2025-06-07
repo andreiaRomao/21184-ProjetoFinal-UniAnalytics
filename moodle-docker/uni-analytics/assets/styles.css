@@ -1,4 +1,4 @@
-/* ===============================
+/* ===============================More actions
    ESTILOS GERAIS DA APLICAÇÃO
    =============================== */
 body {
@@ -262,6 +262,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow: hidden; /* <- Isto evita que o gráfico transborde */
 }
 
 .gauge-wrapper {
@@ -434,4 +435,103 @@ textarea::placeholder {
     gap: 15px;
     width: 100%;
     margin-top: 8px;
+}
+
+/* Ajustes apenas para o dashboard do professor */
+.dashboard-professor {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* coluna esquerda maior */
+  gap: 16px;                      /* menor espaço entre as colunas */
+  padding: 30px;
+  max-width: 1000px;
+  margin: 0 auto;
+  background-color: #f4faf4;
+}
+
+.dashboard-professor .coluna-esquerda,
+.dashboard-professor .coluna-direita {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-professor .coluna-esquerda > .card,
+.dashboard-professor .coluna-direita > .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-professor .card-forum {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width:90%; /* Ajusta a largura do card do fórum */
+}
+
+/* ===============================
+   GRELHA DE BLOCOS DO GERAL
+   =============================== */
+
+/* Centraliza e ajusta o container geral */
+.dashboard-geral .linha-flex {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 10px 30px 30px;
+  margin: 0 auto;
+  background-color: #f4faf4;
+}
+
+/* Colunas esquerda e direita */
+.dashboard-geral .coluna-esquerda,
+.dashboard-geral .coluna-direita {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  height: 100%;
+}
+
+.dashboard-geral .coluna-esquerda {
+  width: 800px;
+}
+
+.dashboard-geral .coluna-direita {
+  width: 800px;
+}
+/* Cartões internos com altura e estrutura igualada */
+.dashboard-geral .card {
+  height: 400px;  /* ← altura fixa igual nas duas */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+/* Título no topo da página */
+.dashboard-geral-titulo {
+  text-align: center;
+  font-weight: bold;
+  font-size: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+/* Títulos internos das caixas (ex: gráfico rosca) */
+.card-section-title {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.bg-verde-suave {
+  background-color: #f4faf4;
 }

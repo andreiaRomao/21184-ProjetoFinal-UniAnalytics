@@ -1,7 +1,7 @@
 from dash import html
 from dash_iconify import DashIconify
 import queries.queriesProfessor as qp
-import queries.queriesAluno as qa # Depois necessario passar para o geral (depois faço)
+import queries.queriesGeral as qg
 import traceback
 
 # =========================
@@ -39,14 +39,14 @@ def layout(professor_id, course_id):
         dados_conteudos = qp.fetch_conteudos_disponibilizados()
         contagem = contar_conteudos_publicados(dados_conteudos, professor_id, course_id)
 
-        dados_forum = qa.fetch_all_forum_posts()
+        dados_forum = qg.fetch_all_forum_posts()
         topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, professor_id, course_id)
     except Exception as e:
         print("[ERRO] (layout) Falha ao gerar o dashboard do professor.")
         traceback.print_exc()
         return html.Div("Erro ao ligar à base de dados.")
 
-    return html.Div(className="dashboard-grid", children=[
+    return html.Div(className="dashboard-professor", children=[
         html.Div(className="coluna-esquerda", children=[
             render_card_forum(topicos_criados, topicos_respondidos)
         ]),

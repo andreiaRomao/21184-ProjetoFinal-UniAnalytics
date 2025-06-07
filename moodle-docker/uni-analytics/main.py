@@ -58,4 +58,5 @@ def display_page(pathname):
 
 if __name__ == '__main__':
     formularioMain.register_callbacks(app)  # ← Regista todos os callbacks
+    dashboardGeral.register_callbacks(app) # ← Regista callbacks do dashboard geral
     app.run(debug=True, host="0.0.0.0", port=8050)

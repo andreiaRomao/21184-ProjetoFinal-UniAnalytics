@@ -2,6 +2,7 @@ from dash import html, dcc
 from dash_iconify import DashIconify
 import plotly.graph_objects as go
 import queries.queriesAluno as qa
+import queries.queriesGeral as qg
 import traceback
 
 # =========================
@@ -107,7 +108,7 @@ def contar_interacoes_aluno(dados, aluno_id, course_id):
 def layout(aluno_id, course_id):
     try:
         dados_completions = qa.fetch_all_completions()
-        dados_forum = qa.fetch_all_forum_posts()
+        dados_forum = qg.fetch_all_forum_posts()
         dados_interacoes = qa.fetch_all_interacoes()
 
         grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)
