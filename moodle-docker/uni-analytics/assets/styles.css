@@ -503,7 +503,7 @@ textarea::placeholder {
 }
 /* Cartões internos com altura e estrutura igualada */
 .dashboard-geral .card {
-  height: 400px;  /* ← altura fixa igual nas duas */
+  height: 320px; 
   display: flex;
   flex-direction: column;
   justify-content: center;

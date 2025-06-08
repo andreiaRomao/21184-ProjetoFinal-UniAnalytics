@@ -4,6 +4,8 @@ import queries.queriesProfessor as qp
 import queries.queriesGeral as qg
 import traceback
 
+from dashboards.dashboardGeral import layout as layout_geral
+
 # =========================
 # Funções de lógica modular
 # =========================
@@ -46,14 +48,30 @@ def layout(professor_id, course_id):
         traceback.print_exc()
         return html.Div("Erro ao ligar à base de dados.")
 
-    return html.Div(className="dashboard-professor", children=[
-        html.Div(className="coluna-esquerda", children=[
-            render_card_forum(topicos_criados, topicos_respondidos)
-        ]),
-        html.Div(className="coluna-direita", children=[
-            render_conteudos_publicados(contagem)
+    return html.Div(children=[
+        layout_geral(professor_id, course_id),  # Parte superior
+    
+        html.Div(
+            children=[
+                html.H3("Professor - Visão Geral da Atividade", style={
+                    "textAlign": "center",
+                    "marginTop": "4px",
+                    "marginBottom": "8px"
+                })
+            ],
+            style={"marginTop": "0px", "paddingTop": "0px"}
+        ),
+    
+        html.Div(className="dashboard-professor", children=[
+            html.Div(className="coluna-esquerda", children=[
+                render_card_forum(topicos_criados, topicos_respondidos)
+            ]),
+            html.Div(className="coluna-direita", children=[
+                render_conteudos_publicados(contagem)
+            ])
         ])
     ])
+
 
 # =========================
 # Componentes visuais

@@ -5,6 +5,8 @@ import queries.queriesAluno as qa
 import queries.queriesGeral as qg
 import traceback
 
+from dashboards.dashboardGeral import layout as layout_geral
+
 # =========================
 # Funções de lógica modular
 # =========================
@@ -138,15 +140,30 @@ def layout(aluno_id, course_id):
         traceback.print_exc()
         return html.Div("Erro ao ligar à base de dados.")
 
-    return html.Div(className="dashboard-grid", children=[
-        html.Div(className="coluna-esquerda", children=[
-            render_progresso_atividades(avaliacao, formativas, quizz),
-            render_mensagens_forum(forum_criados, forum_respostas),
-            render_volume_interacao(interacoes)
-        ]),
-        html.Div(className="coluna-direita", children=[
-            render_progresso_global(progresso_global),
-            render_desempenho(desempenho)
+    return html.Div(children=[
+        layout_geral(aluno_id, course_id),  # Parte superior: Geral da UC
+
+        html.Div(
+            children=[
+                html.H3("Aluno - Nível de Interação", style={
+                    "textAlign": "center",
+                    "marginTop": "4px",
+                    "marginBottom": "8px"
+                })
+            ],
+            style={"marginTop": "0px", "paddingTop": "0px"}
+        ),
+
+        html.Div(className="dashboard-grid", children=[
+            html.Div(className="coluna-esquerda", children=[
+                render_progresso_atividades(avaliacao, formativas, quizz),
+                render_mensagens_forum(forum_criados, forum_respostas),
+                render_volume_interacao(interacoes)
+            ]),
+            html.Div(className="coluna-direita", children=[
+                render_progresso_global(progresso_global),
+                render_desempenho(desempenho)
+            ])
         ])
     ])
 
@@ -163,7 +180,7 @@ def render_progresso_atividades(avaliacao, formativas, quizz):
     ])
 
 def render_mensagens_forum(criados, respondidos):
-    return html.Div(className="card card-forum", children=[
+    return html.Div(className="card card-forum", style={"paddingTop": "14px", "paddingBottom": "10px", "marginTop": "0px"}, children=[
         html.H4("Mensagens do fórum", className="card-section-title"),
         html.Div(className="forum-box", children=[
             html.Div(className="forum-created-box", children=[

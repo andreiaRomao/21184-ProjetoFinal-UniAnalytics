@@ -136,23 +136,23 @@ def layout(userid, course_id):
             html.Div(className="linha-flex", children=[
                 html.Div(className="coluna-esquerda", children=[
                     html.Div(className="card bg-verde-suave", children=[
-                        html.Div(style={
-                            "display": "flex", "justifyContent": "space-between", "alignItems": "center",
-                            "minHeight": "36px"
-                        }, children=[
-                            html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos",
-                                    className="card-section-title", style={"textAlign": "center", "width": "100%"}),
-                            html.Div()
+                        html.Div(children=[
+                            html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="card-section-title", style={"textAlign": "center"})
                         ]),
-                        html.Div(style={"display": "flex", "justifyContent": "center", "alignItems": "center", "flex": "1"},
-                                 children=[
-                                     dcc.Graph(
-                                         id="grafico_linhas",
-                                         figure=construir_figura_linhas(ano_inicial),
-                                         config={"displayModeBar": False},
-                                         style={"height": "300px", "width": "100%"}
-                                     )
-                                 ])
+                        html.Div(style={
+                            "display": "flex",
+                            "flexDirection": "column",
+                            "justifyContent": "flex-start",
+                            "alignItems": "center",
+                            "flex": "1"
+                        }, children=[
+                            dcc.Graph(
+                                id="grafico_linhas",
+                                figure=construir_figura_linhas(ano_inicial),
+                                config={"displayModeBar": False},
+                                style={"height": "220px", "width": "100%"}
+                            )
+                        ])
                     ])
                 ]),
                 html.Div(className="coluna-direita", children=[
@@ -174,7 +174,7 @@ def layout(userid, course_id):
                                          id="grafico_pie",
                                          figure=construir_figura_pie(ano_inicial),
                                          config={"displayModeBar": False},
-                                         style={"height": "300px", "width": "100%"}
+                                         style={"height": "220px", "width": "100%"}
                                      )
                                  ])
                     ])
