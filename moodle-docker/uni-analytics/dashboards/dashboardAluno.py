@@ -145,13 +145,9 @@ def layout(aluno_id, course_id):
 
         html.Div(
             children=[
-                html.H3("Aluno - Nível de Interação", style={
-                    "textAlign": "center",
-                    "marginTop": "4px",
-                    "marginBottom": "8px"
-                })
+                html.H3("Aluno - Nível de Interação", className="dashboard-aluno-professor-titulo")
             ],
-            style={"marginTop": "0px", "paddingTop": "0px"}
+            style={"marginTop": "0px", "paddingTop": "0px", "height": "auto","lineHeight": "1"}
         ),
 
         html.Div(className="dashboard-grid", children=[

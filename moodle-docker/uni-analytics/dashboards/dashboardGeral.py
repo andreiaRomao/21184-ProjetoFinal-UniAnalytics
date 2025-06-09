@@ -1,7 +1,9 @@
-from dash import html, dcc, Input, Output
+from dash import html, dcc, Input, Output, State
+from dash_iconify import DashIconify
 import plotly.express as px
 import pandas as pd
 import queries.queriesGeral as qg
+import queries.queriesAluno as qa
 import traceback
 import re
 
@@ -17,11 +19,95 @@ dados_linhas_por_ano = {
 }
 
 dados_pie_por_ano = {
-    '2020/2021': {'Global': 50.0, 'Exame': 30.0, 'Recurso': 20.0},
-    '2021/2022': {'Global': 60.0, 'Exame': 25.0, 'Recurso': 15.0},
-    '2022/2023': {'Global': 58.0, 'Exame': 22.0, 'Recurso': 20.0},
-    '2023/2024': {'Global': 62.5, 'Exame': 12.5, 'Recurso': 25.0}
+    '2020/2021': {'Global': 42.0, 'Exame': 26.0, 'Recurso': 22.0, 'Exame Recurso': 10.0},
+    '2021/2022': {'Global': 51.0, 'Exame': 23.0, 'Recurso': 14.0, 'Exame Recurso': 12.0},
+    '2022/2023': {'Global': 48.0, 'Exame': 19.0, 'Recurso': 16.0, 'Exame Recurso': 17.0},
+    '2023/2024': {'Global': 54.0, 'Exame': 15.0, 'Recurso': 18.0, 'Exame Recurso': 13.0},
 }
+
+def normalizar_itemname(nome):
+    if not isinstance(nome, str):
+        return ""
+    nome = nome.lower()
+    nome = re.sub(r'[^a-z0-9]', '', nome)
+    return nome
+
+def extrair_ano_letivo(course_name):
+    match = re.search(r'_(\d{2})', course_name)
+    if match:
+        sufixo = int(match.group(1))
+        ano_inicio = 2000 + sufixo
+        return f"{ano_inicio}/{ano_inicio + 1}"
+    return None
+
+def classificar_aluno(grupo, notas):
+    a = notas.get('efolioa', 0)
+    b = notas.get('efoliob', 0)
+    global_ = notas.get('global')
+    recurso = notas.get('recurso')
+    exame = notas.get('exame')
+    exame_rec = notas.get('examerecurso')
+    soma = a + b
+
+    if 'exame' in grupo.lower():
+        if exame and exame >= 9.5:
+            return "Exame"
+        elif exame and exame < 9.5 and exame_rec and exame_rec >= 9.5:
+            return "Exame Recurso"
+        else:
+            return "Reprovado"
+    else:
+        if soma >= 3.5:
+            if global_ and global_ >= 5.5 and soma + global_ >= 9.5:
+                return "Global"
+            elif recurso and recurso >= 5.5 and soma + recurso >= 9.5:
+                return "Recurso"
+            else:
+                return "Reprovado"
+        else:
+            return "Reprovado"
+
+def calcular_estatisticas_por_ano(completions, cursos):
+    # Prepara dados
+    completions['itemname'] = completions['itemname'].apply(normalizar_itemname)
+    cursos['ano_letivo'] = cursos['course_name'].apply(extrair_ano_letivo)
+
+    # Junta ambos
+    df = completions.merge(
+        cursos[['userid', 'courseid', 'course_name', 'ano_letivo']],
+        left_on=['userid', 'course_id'],
+        right_on=['userid', 'courseid'],
+        how='left'
+    )
+
+    # Filtra anos válidos (exclui ano atual)
+    anos = sorted(df['ano_letivo'].dropna().unique())
+    if len(anos) > 0:
+        ano_atual = anos[-1]
+        anos = [a for a in anos if a != ano_atual]
+
+    pie_por_ano = {}
+    linhas_por_ano = {}
+
+    for ano in anos:
+        df_ano = df[df['ano_letivo'] == ano]
+        situacoes = {}
+
+        for uid, grupo in df_ano.groupby('userid'):
+            notas = grupo.set_index('itemname')['finalgrade'].to_dict()
+            grupo_nome = grupo['groupname'].dropna().unique()
+            grupo_nome = grupo_nome[0] if len(grupo_nome) > 0 else "Desconhecido"
+            situacao = classificar_aluno(grupo_nome, notas)
+            situacoes[uid] = situacao
+
+        contagem = pd.Series(situacoes.values()).value_counts().to_dict()
+        pie_por_ano[ano] = contagem
+
+        aprovados = sum(contagem.get(k, 0) for k in ["Global", "Exame", "Recurso", "Exame Recurso"])
+        reprovados = contagem.get("Reprovado", 0)
+        linhas_por_ano[ano] = [aprovados, reprovados]
+
+    return linhas_por_ano, pie_por_ano
 
 # =========================
 # Callback de atualização
@@ -31,10 +117,13 @@ def register_callbacks(app):
     @app.callback(
         Output("grafico_linhas", "figure"),
         Output("grafico_pie", "figure"),
-        Input("dropdown_ano", "value")
+        Input("dropdown_ano", "value"),
+        State("store_dados_grafico", "data")
     )
-    def atualizar_graficos(ano):
-        return construir_figura_linhas(ano), construir_figura_pie(ano)
+    def atualizar_graficos(ano, store_data):
+        linhas = store_data.get("linhas", {})
+        pie = store_data.get("pie", {})
+        return construir_figura_linhas(linhas, ano), construir_figura_pie(pie, ano)
 
 # =========================
 # Função auxiliar: Info topo do dashboard
@@ -42,26 +131,27 @@ def register_callbacks(app):
 
 def get_dashboard_top_info(userid, course_id):
     try:
-        forum_data = qg.fetch_all_forum_posts()
         cursos = qg.fetch_user_course_data()
 
-        utilizador = next((x for x in forum_data if x['userid'] == userid and x['course_id'] == course_id), None)
-        curso = cursos[cursos['curso'].notna() & (cursos['curso'].str.contains(str(course_id)))].head(1)
-        nome_curso = curso['curso'].values[0] if not curso.empty else f"{course_id} - UC Desconhecida"
+        # Filtra apenas pelo utilizador e curso atual
+        linha = cursos[(cursos['userid'] == userid) & (cursos['courseid'] == course_id)].head(1)
 
-        if utilizador:
-            nome = f"{utilizador['firstname']} {utilizador['lastname']}"
-            papel_raw = utilizador['role'].lower()
+        if not linha.empty:
+            nome = linha['name'].values[0]
+            papel_raw = linha['role'].values[0].lower()
             papel = "ALUNO" if "student" in papel_raw else "PROFESSOR"
+            nome_curso = linha['course_name'].values[0]
         else:
             nome = "Utilizador Desconhecido"
             papel = "-"
+            nome_curso = f"{course_id} - UC Desconhecida"
 
         return nome, papel, nome_curso
 
     except Exception as e:
         print("[ERRO] (get_dashboard_top_info):", e)
         return "Erro", "Erro", "Erro"
+
 
 # =========================
 # Obter cursos disponíveis para dropdown
@@ -70,32 +160,26 @@ def get_dashboard_top_info(userid, course_id):
 def obter_opcoes_dropdown_cursos():
     try:
         cursos = qg.fetch_user_course_data()
-        cursos_validos = cursos[cursos['curso'].notna()]
+        cursos_validos = cursos[cursos['course_name'].notna()]
 
         opcoes = []
 
-        for _, linha in cursos_validos.iterrows():
-            nome = linha['curso']
-            match = re.match(r'^(\d+)\s*-\s*(.*)', nome)
+        # Elimina cursos duplicados (caso o mesmo curso apareça para vários users)
+        cursos_unicos = cursos_validos.drop_duplicates(subset=["course_name"])
 
-            if match:
-                # Curso começa por número → usa esse número como valor
-                course_id = int(match.group(1))
-                label = nome
-                opcoes.append({
-                    "label": label,
-                    "value": course_id
-                })
-            else:
-                # Curso sem ID → ignora ou trata separadamente
-                # print(f"[IGNORADO] Curso sem ID numérico: {nome}")
-                # Opcional: adicionar ao dropdown com o nome como valor?
-                opcoes.append({"label": nome, "value": nome})
+        for _, linha in cursos_unicos.iterrows():
+            nome = linha['course_name']
+            opcoes.append({
+                "label": nome,
+                "value": nome
+            })
+
         return opcoes
 
     except Exception as e:
         print("[ERRO] (obter_opcoes_dropdown_cursos):", e)
         return []
+
 
 # =========================
 # Layout principal
@@ -103,19 +187,36 @@ def obter_opcoes_dropdown_cursos():
 
 def layout(userid, course_id):
     try:
-        anos_disponiveis = sorted(dados_pie_por_ano.keys())
+        dados_completions = pd.DataFrame(qa.fetch_all_completions())
+        dados_cursos = pd.DataFrame(qg.fetch_user_course_data())
+        linhas_por_ano, pie_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
+
+        # Serializa para guardar no Store
+        store_data = {
+            "linhas": linhas_por_ano,
+            "pie": pie_por_ano
+        }
+
+        anos_disponiveis = sorted(pie_por_ano.keys())
         ano_inicial = anos_disponiveis[-1] if anos_disponiveis else ""
+
         nome, papel, curso = get_dashboard_top_info(userid, course_id)
         dropdown_cursos = obter_opcoes_dropdown_cursos()
 
         return html.Div(className="dashboard-geral", children=[
+            dcc.Store(id="store_dados_grafico", data=store_data),  # Guarda os dados para os gráficos
             html.Div(className="topo-dashboard", children=[
                 html.Div(className="linha-superior", children=[
                     html.Div(className="info-utilizador", children=[
-                        html.Div(className="avatar-icon"),
+                        DashIconify(
+                            icon="mdi:school" if papel == "ALUNO" else "mdi:teach",
+                            width=32,
+                            color="#2c3e50",
+                            className="avatar-icon"
+                        ),
                         html.Span(f"[{papel}] {nome}", className="nome-utilizador")
                     ]),
-                    html.Div(className="dropdown-curso", children=[
+                    html.Div(className="dropdown-curso", style={"display": "none"}, children=[  # <- escondido para já
                         dcc.Dropdown(
                             id="dropdown_uc",
                             options=dropdown_cursos,
@@ -131,7 +232,7 @@ def layout(userid, course_id):
                 ])
             ]),
 
-            html.H3("Dashboard Geral de Unidade Curricular", style={"textAlign": "center"}),
+            html.H3("Dashboard Geral de Unidade Curricular", className="dashboard-geral-titulo" ),
 
             html.Div(className="linha-flex", children=[
                 html.Div(className="coluna-esquerda", children=[
@@ -148,9 +249,9 @@ def layout(userid, course_id):
                         }, children=[
                             dcc.Graph(
                                 id="grafico_linhas",
-                                figure=construir_figura_linhas(ano_inicial),
+                                figure=construir_figura_linhas(linhas_por_ano, ano_inicial),
                                 config={"displayModeBar": False},
-                                style={"height": "220px", "width": "100%"}
+                                style={"width": "100%","marginBottom": "20px"}
                             )
                         ])
                     ])
@@ -172,9 +273,9 @@ def layout(userid, course_id):
                                  children=[
                                      dcc.Graph(
                                          id="grafico_pie",
-                                         figure=construir_figura_pie(ano_inicial),
+                                         figure=construir_figura_pie(pie_por_ano, ano_inicial),
                                          config={"displayModeBar": False},
-                                         style={"height": "220px", "width": "100%"}
+                                         style={"width": "100%", "marginBottom": "20px" }
                                      )
                                  ])
                     ])
@@ -190,49 +291,32 @@ def layout(userid, course_id):
 # Funções de construção de gráficos
 # =========================
 
-def construir_figura_linhas(ano_selecionado):
+def construir_figura_linhas(linhas_por_ano, ano_selecionado):
     # Extrai o ano base (ex: "2022/2023" → 2022)
     ano_final = int(ano_selecionado.split("/")[0])
-
-    # Gera os últimos 5 anos
     anos_eixo = list(range(ano_final - 4, ano_final + 1))
 
-    # Recolhe os dados disponíveis (se existirem no dicionário)
-    dados = {
-        ano: dados_linhas_por_ano[ano]
-        for ano in dados_linhas_por_ano
-        if int(ano.split("/")[0]) in anos_eixo
-    }
-
-    df = pd.DataFrame({
-        "Ano": [],
-        "Situação": [],
-        "Total": []
-    })
+    df = pd.DataFrame(columns=["Ano", "Situação", "Total"])
 
     for ano in anos_eixo:
         str_ano = f"{ano}/{ano+1}"
-        if str_ano in dados:
-            aprov, repro = dados[str_ano]
-            df = pd.concat([
-                df,
-                pd.DataFrame({
-                    "Ano": [ano, ano],
-                    "Situação": ["Aprovados", "Reprovados"],
-                    "Total": [aprov, repro]
-                })
-            ])
-        else:
-            # ano sem dados → ignora no gráfico, mas ano estará no eixo
-            continue
+        aprov, repro = linhas_por_ano.get(str_ano, [0, 0])  # ← usa [0, 0] se não existir
+        df = pd.concat([
+            df,
+            pd.DataFrame({
+                "Ano": [ano, ano],
+                "Situação": ["Aprovados", "Reprovados"],
+                "Total": [aprov, repro]
+            })
+        ])
 
-    # Força presença dos anos no eixo X, mesmo sem dados
     fig = px.line(df, x="Ano", y="Total", color="Situação", markers=True,
                   category_orders={"Ano": anos_eixo},
                   color_discrete_map={"Aprovados": "#80cfa9", "Reprovados": "#5bb0f6"},
                   height=280)
 
     fig.update_layout(
+        height=220,
         margin=dict(l=10, r=10, t=20, b=30),
         paper_bgcolor="#f4faf4",
         plot_bgcolor="#f4faf4",
@@ -242,26 +326,37 @@ def construir_figura_linhas(ano_selecionado):
     )
     return fig
 
-def construir_figura_pie(ano):
-    dados = dados_pie_por_ano[ano]
+
+
+def construir_figura_pie(pie_por_ano, ano):
+    dados = pie_por_ano.get(ano, {})
+
+    ordem = ["Exame Recurso", "Global", "Exame", "Recurso"]
+    dados_ordenados = {k: dados[k] for k in ordem if k in dados}
+
     df = pd.DataFrame({
-        "Tipo": list(dados.keys()),
-        "Percentagem": list(dados.values())
+        "Tipo": list(dados_ordenados.keys()),
+        "Percentagem": list(dados_ordenados.values())
     })
 
     fig = px.pie(df, names="Tipo", values="Percentagem", hole=0.45,
-                 color_discrete_sequence=["#94e0e4", "#69b3dd", "#386c95"], height=280)
+                 color_discrete_sequence=["#94e0e4", "#69b3dd", "#386c95", "#ffc658", "#f08080"],
+                 category_orders={"Tipo": ordem}, height=280)
     fig.update_traces(textinfo="label+percent")
     fig.update_layout(
+        height=220,
         margin=dict(t=20, b=20, l=20, r=20),
         paper_bgcolor="#f4faf4",
         plot_bgcolor="#f4faf4",
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=-0.2,
+            y=0.6,
             xanchor="center",
-            x=0.5
+            x=-10,
+            font=dict(size=13),
+            itemwidth=40,
+            tracegroupgap=0
         )
     )
     return fig

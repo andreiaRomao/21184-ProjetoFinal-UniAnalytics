@@ -4,14 +4,18 @@ from db.moodleConnection import connect_to_moodle_db
 def fetch_user_course_data():
     conn = connect_to_moodle_db()
     query = """
-        SELECT c.fullname AS curso, COUNT(u.id) AS total_alunos
+        SELECT
+          u.id                                AS userid,
+          CONCAT(u.firstname, ' ', u.lastname) AS name,
+          r.shortname                         AS role,
+          c.id                                AS courseid,
+          c.fullname                          AS course_name
         FROM mdl_user u
-        JOIN mdl_user_enrolments ue ON ue.userid = u.id
-        JOIN mdl_enrol e ON e.id = ue.enrolid
-        JOIN mdl_course c ON c.id = e.courseid
-        GROUP BY c.fullname
-        ORDER BY total_alunos DESC
-        LIMIT 10;
+        JOIN mdl_role_assignments ra ON ra.userid = u.id
+        JOIN mdl_context ctx          ON ctx.id = ra.contextid AND ctx.contextlevel = 50  -- 50 = nível de curso
+        JOIN mdl_course c            ON c.id = ctx.instanceid
+        JOIN mdl_role r              ON r.id = ra.roleid
+        ORDER BY courseid, role, name;
     """
     cursor = conn.cursor()
     cursor.execute(query)
@@ -32,6 +36,7 @@ def fetch_all_forum_posts():
             COALESCE(r.shortname, 'none') AS role,
             f.course AS course_id,
             p.id AS post_id,
+            p.parent AS parent,
             p.created AS timecreated,
             CASE
                 WHEN p.parent = 0 THEN 'topic'

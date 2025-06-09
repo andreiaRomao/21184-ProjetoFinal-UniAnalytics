@@ -5,6 +5,21 @@ def fetch_all_completions():
     from db.moodleConnection import connect_to_moodle_db
     conn = connect_to_moodle_db()
     query = """      
+        WITH grupo_unico AS (
+            SELECT *
+            FROM (
+                SELECT 
+                    gm.userid,
+                    g.id AS groupid,
+                    g.name AS groupname,
+                    g.courseid,
+                    ROW_NUMBER() OVER (PARTITION BY gm.userid, g.courseid ORDER BY g.id) AS rn
+                FROM mdl_groups_members gm
+                JOIN mdl_groups g ON g.id = gm.groupid
+            ) sub
+            WHERE rn = 1
+        )
+
         SELECT
             cm.id AS coursemodule_id,
             cm.course AS course_id,
@@ -13,8 +28,8 @@ def fetch_all_completions():
             cmc.userid,
             cmc.completionstate,
             gi.itemname,
-            g.id AS groupid,
-            g.name AS groupname,
+            gu.groupid,
+            gu.groupname,
             gg.finalgrade
         FROM mdl_course_modules cm
         JOIN mdl_modules m ON m.id = cm.module
@@ -24,15 +39,9 @@ def fetch_all_completions():
             ON gi.iteminstance = cm.instance AND gi.itemtype = 'mod' AND gi.courseid = cm.course
         LEFT JOIN mdl_grade_grades gg
             ON gg.itemid = gi.id AND gg.userid = cmc.userid
-        LEFT JOIN mdl_user_enrolments ue
-            ON ue.userid = cmc.userid
-        LEFT JOIN mdl_enrol e
-            ON e.id = ue.enrolid AND e.courseid = cm.course
-        LEFT JOIN mdl_groups_members gm
-            ON gm.userid = cmc.userid
-        LEFT JOIN mdl_groups g
-            ON g.id = gm.groupid
-        WHERE cm.completion > 0;        
+        LEFT JOIN grupo_unico gu
+            ON gu.userid = cmc.userid AND gu.courseid = cm.course
+        WHERE cm.completion > 0;     
     """
     try:
         cursor = conn.cursor(dictionary=True)
