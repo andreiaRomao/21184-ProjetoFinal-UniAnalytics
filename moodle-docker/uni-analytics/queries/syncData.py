@@ -1,7 +1,8 @@
 from datetime import datetime
 from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
-from queries.queriesAluno import fetch_all_forum_posts, fetch_all_interacoes, fetch_all_completions
+from queries.queriesAluno import fetch_all_interacoes, fetch_all_completions
+from queries.queriesGeral import fetch_all_forum_posts
 
 # Função para sincronizar os dados dos fóruns
 def sync_forum_data():
@@ -31,6 +32,7 @@ def sync_forum_data():
                     row["role"],
                     row["course_id"],
                     row["post_type"],
+                     row["parent"],                   
                     row["timecreated"],
                     now
                 ))
