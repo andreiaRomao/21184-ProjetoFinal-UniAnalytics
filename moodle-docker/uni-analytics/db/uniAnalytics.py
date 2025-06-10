@@ -56,6 +56,7 @@ def init_uni_analytics_db():
             role TEXT NOT NULL,
             course_id INTEGER NOT NULL,
             post_type TEXT NOT NULL,
+            parent INTEGER NOT NULL,
             timecreated DATETIME NOT NULL,
             lastrefreshdatetime DATETIME
         );

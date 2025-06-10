@@ -24,9 +24,9 @@ def sync_forum_data():
                 logger.debug(f"[SYNC][FORUM] Inserir: userid={row['userid']}, role={row['role']}, course_id={row['course_id']}, post_type={row['post_type']}, timecreated={row['timecreated']}")
                 cursor_local.execute("""
                     INSERT INTO forum (
-                        userid, role, course_id, post_type, timecreated, lastrefreshdatetime
+                        userid, role, course_id, post_type, parent, timecreated, lastrefreshdatetime
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     row["userid"],
                     row["role"],
@@ -129,7 +129,7 @@ def sync_grade_progress_data():
                     row["itemname"],
                     row["groupid"],
                     row["groupname"],
-                    row["finalgrade"],
+                    float(row["finalgrade"]) if row["finalgrade"] is not None else None,
                     row["timecreated"],
                     now
                 ))
