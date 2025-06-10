@@ -48,7 +48,14 @@ def layout():
             ]),
 
             # Botões de ação: guardar, listar e apagar perguntas
-            html.Div(style={"marginTop": "20px", "display": "flex", "gap": "10px", "flexWrap": "wrap"}, children=[
+            html.Div(style={
+                        "marginTop": "20px",
+                        "display": "flex",
+                        "gap": "10px",
+                        "flexWrap": "wrap",
+                        "justifyContent": "center", 
+                        "width": "100%" 
+                    }, children=[
                 html.Button("Guardar Pergunta", id="guardar-pergunta-btn", className="btn"),
                 html.Button("Listar Perguntas", id="listar-perguntas-btn", className="btn"),
                 html.Button("Apagar Pergunta", id="mostrar-apagar-btn", className="btn")
@@ -219,15 +226,46 @@ def register_callbacks(app):
 
     # Apaga pergunta e respetivas respostas associadas
     @app.callback(
-        Output("mensagem-admin", "children", allow_duplicate=True),
-        Output("lista-perguntas", "children", allow_duplicate=True),
-        Output("secao-lista-perguntas", "style", allow_duplicate=True),
+        Output("mensagem-admin", "children", allow_duplicate=True),  # Mensagem de confirmação ou erro
+        Output("lista-perguntas", "children", allow_duplicate=True),  # Atualiza lista de perguntas após remoção
+        Output("secao-lista-perguntas", "style", allow_duplicate=True),  # Garante que a secção está visível
         Input("apagar-pergunta-btn", "n_clicks"),
         State("id-pergunta-apagar", "value"),
         State("tipo-formulario-admin", "value"),
         prevent_initial_call=True
     )
     def apagar_pergunta(n_clicks, pergunta_id, tipo_form):
+        # Valida se foi introduzido um ID
+        if not pergunta_id:
+            return "Por favor insere um ID válido para apagar.", dash.no_update, dash.no_update
+
+        try:
+            conn = connect_to_uni_analytics_db()
+            cursor = conn.cursor()
+
+            # Verifica se a pergunta com o ID fornecido existe
+            cursor.execute("SELECT COUNT(*) FROM forms_questions WHERE id = ?", (pergunta_id,))
+            existe = cursor.fetchone()[0]
+            if existe == 0:
+                conn.close()
+                return f"A pergunta com ID {pergunta_id} não existe.", dash.no_update, dash.no_update
+
+            # Apaga as respostas associadas à pergunta
+            cursor.execute("DELETE FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+
+            # Apaga a pergunta propriamente dita
+            cursor.execute("DELETE FROM forms_questions WHERE id = ?", (pergunta_id,))
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"[ADMIN] Pergunta apagada com sucesso: id={pergunta_id}")
+            return f"Pergunta ID {pergunta_id} apagada com sucesso.", listar_perguntas_html(tipo_form), {"display": "block"}
+
+        except Exception as e:
+            logger.exception("[ADMIN] Erro ao apagar pergunta")
+            return f"Erro ao apagar: {str(e)}", dash.no_update, dash.no_update
+
         if not pergunta_id:
             return "Por favor insere um ID válido para apagar.", dash.no_update, dash.no_update
 

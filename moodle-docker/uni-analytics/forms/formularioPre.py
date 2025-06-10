@@ -25,10 +25,16 @@ def layout():
 
             # Botões de controlo
             html.Div([
+                html.Button("Anterior", id="back-btn-pre", n_clicks=0, className="btn"),
                 html.Button("Seguinte", id="next-btn-pre", n_clicks=0, className="btn"),
                 html.Button("Submeter", id="submit-btn-pre", n_clicks=0, className="btn", style={"display": "none"}),
                 html.Button("Ver Resultados", id="ver-resultados-btn-pre", n_clicks=0, className="btn")
-            ], style={"display": "flex", "gap": "20px"}),
+            ], style={
+                "display": "flex",
+                "gap": "20px",
+                "justifyContent": "center", 
+                "width": "100%"             
+            }),
 
             # Mensagem após submissão
             html.Div(id="mensagem-final-pre", style={"marginTop": "20px", "fontWeight": "bold", "textAlign": "center"}),
@@ -72,6 +78,7 @@ def register_callbacks(app):
         Output("pergunta-area-pre", "children"),
         Output("next-btn-pre", "style"),
         Output("submit-btn-pre", "style"),
+        Output("back-btn-pre", "style"),
         Input("etapa-pre", "data"),
         Input("perguntas-pre", "data"),
         State("respostas-pre", "data")
@@ -80,18 +87,27 @@ def register_callbacks(app):
         if perguntas is None:
             raise PreventUpdate
 
+        # Caso esteja na introdução (etapa 0)
         if etapa == 0:
             return html.Div(
                 "Bem-vindo ao formulário de pré-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade.",
                 className="pergunta-card"
-            ), {"display": "inline-block"}, {"display": "none"}
+            ), {"display": "inline-block"}, {"display": "none"}, {"display": "none"} 
 
-        if etapa > len(perguntas):
+        # Caso tenha terminado todas as perguntas (etapa final para submissão)
+        if etapa == len(perguntas) + 1:
             return html.Div(
                 "Obrigado! As tuas respostas vão ser submetidas.",
                 className="pergunta-card"
-            ), {"display": "none"}, {"display": "inline-block"}
+            ), {"display": "none"}, {"display": "none"}, {"display": "none"}  # Após submissão, tudo escondido
 
+        if etapa == len(perguntas):
+            return html.Div(
+                "Confirmação: Estás prestes a submeter as tuas respostas.",
+                className="pergunta-card"
+            ), {"display": "none"}, {"display": "inline-block"}, {"display": "inline-block"}  # Submissão ativa, permite voltar
+
+        # Caso esteja a visualizar uma pergunta
         pergunta_atual = perguntas[etapa - 1]
         pergunta_id = pergunta_atual["id"]
 
@@ -118,29 +134,48 @@ def register_callbacks(app):
                 placeholder="Seleciona uma opção",
                 value=respostas.get(str(pergunta_id))
             )
-        ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}
+        ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}, {"display": "inline-block" if etapa > 1 else "none"}
 
-    # Guarda a resposta atual e passa para a próxima pergunta
+    # Callback unificado para avançar ou recuar entre perguntas
     @app.callback(
-        Output("etapa-pre", "data"),
-        Output("respostas-pre", "data"),
-        Input("next-btn-pre", "n_clicks"),
-        State("etapa-pre", "data"),
-        State("respostas-pre", "data"),
-        State({"type": "resposta-pre", "index": ALL}, "value"),
-        State("perguntas-pre", "data"),
+        Output("etapa-pre", "data"),                      # Atualiza a etapa atual
+        Output("respostas-pre", "data"),                  # Atualiza as respostas dadas
+        Input("next-btn-pre", "n_clicks"),                # Clicou em "Seguinte"
+        Input("back-btn-pre", "n_clicks"),                # Clicou em "Anterior"
+        State("etapa-pre", "data"),                       # Etapa atual
+        State("respostas-pre", "data"),                   # Respostas dadas até agora
+        State({"type": "resposta-pre", "index": ALL}, "value"),  # Valor da resposta atual
+        State("perguntas-pre", "data"),                   # Lista de perguntas
         prevent_initial_call=True
     )
-    def avancar(n_clicks, etapa, respostas, resposta_atual_lista, perguntas):
-        if perguntas is None:
-            raise dash.exceptions.PreventUpdate
+    def navegar(n_seguinte, n_anterior, etapa_atual, respostas, resposta_atual_lista, perguntas):
+        ctx = dash.callback_context
 
-        if etapa > 0 and etapa <= len(perguntas) and resposta_atual_lista and resposta_atual_lista[0] is not None:
-            pergunta_id = perguntas[etapa - 1]["id"]
-            respostas[str(pergunta_id)] = resposta_atual_lista[0]
-            logger.debug(f"[PRE] Guardada resposta: pergunta_id={pergunta_id}, resposta_id={resposta_atual_lista[0]}")
+        # Verifica se há evento ativo
+        if not ctx.triggered or perguntas is None:
+            raise PreventUpdate
 
-        return etapa + 1, respostas
+        # Identifica qual botão foi clicado
+        botao_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        # Se clicou no botão "Anterior"
+        if botao_id == "back-btn-pre":
+            if etapa_atual > 0:
+                nova_etapa = etapa_atual - 1
+                logger.debug(f"[PRE] Recuar para etapa {nova_etapa}")
+                return nova_etapa, respostas
+            else:
+                raise PreventUpdate
+
+        # Se clicou no botão "Seguinte"
+        if botao_id == "next-btn-pre":
+            if etapa_atual > 0 and etapa_atual <= len(perguntas) and resposta_atual_lista and resposta_atual_lista[0] is not None:
+                pergunta_id = perguntas[etapa_atual - 1]["id"]
+                respostas[str(pergunta_id)] = resposta_atual_lista[0]
+                logger.debug(f"[PRE] Guardada resposta: pergunta_id={pergunta_id}, resposta_id={resposta_atual_lista[0]}")
+            return etapa_atual + 1, respostas
+
+        raise PreventUpdate
 
     # Submete todas as respostas para a base de dados
     @app.callback(
