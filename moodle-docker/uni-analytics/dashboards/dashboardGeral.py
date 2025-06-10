@@ -8,22 +8,8 @@ import traceback
 import re
 
 # =========================
-# DADOS MARTELADOS POR ANO
+# Funções auxiliares para normalização e extração de dados
 # =========================
-
-dados_linhas_por_ano = {
-    '2020/2021': [230, 140],
-    '2021/2022': [180, 120],
-    '2022/2023': [410, 200],
-    '2023/2024': [320, 90],
-}
-
-dados_pie_por_ano = {
-    '2020/2021': {'Global': 42.0, 'Exame': 26.0, 'Recurso': 22.0, 'Exame Recurso': 10.0},
-    '2021/2022': {'Global': 51.0, 'Exame': 23.0, 'Recurso': 14.0, 'Exame Recurso': 12.0},
-    '2022/2023': {'Global': 48.0, 'Exame': 19.0, 'Recurso': 16.0, 'Exame Recurso': 17.0},
-    '2023/2024': {'Global': 54.0, 'Exame': 15.0, 'Recurso': 18.0, 'Exame Recurso': 13.0},
-}
 
 def normalizar_itemname(nome):
     if not isinstance(nome, str):
@@ -66,6 +52,10 @@ def classificar_aluno(grupo, notas):
                 return "Reprovado"
         else:
             return "Reprovado"
+        
+# =========================
+# Calcular estatísticas por ano 
+# =========================
 
 def calcular_estatisticas_por_ano(completions, cursos):
     # Prepara dados
@@ -238,7 +228,7 @@ def layout(userid, course_id):
                 html.Div(className="coluna-esquerda", children=[
                     html.Div(className="card bg-verde-suave", children=[
                         html.Div(children=[
-                            html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="card-section-title", style={"textAlign": "center"})
+                            html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="card-section-title", style={"textAlign": "left"})
                         ]),
                         html.Div(style={
                             "display": "flex",
@@ -263,7 +253,7 @@ def layout(userid, course_id):
                             html.H4("Taxa de Aprovação por tipo de avaliação", className="card-section-title"),
                             dcc.Dropdown(
                                 id="dropdown_ano",
-                                options=[{"label": ano, "value": ano} for ano in dados_pie_por_ano.keys()],
+                                options=[{"label": ano, "value": ano} for ano in pie_por_ano.keys()],
                                 value=ano_inicial,
                                 clearable=False,
                                 style={"width": "130px", "fontSize": "13px", "marginTop": "0px"}
