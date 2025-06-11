@@ -1,122 +1,121 @@
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
-from db.moodleConnection import get_moodle_connection
-from utils.logger import logger  # ← Importa o logger personalizado
+from db.moodleConnection import connect_to_moodle_db
+from utils.logger import logger 
 
-# Função para verificar se o email existe na base de dados do Moodle
-def email_exists_in_moodle(email):
+# Função para obter toda a informação relevante do utilizador a partir do Moodle
+def get_user_info_from_moodle(email):
     try:
-        conn = get_moodle_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT id FROM mdl_user WHERE email = %s", (email,))
-            result = cursor.fetchone()
-        conn.close()
-        logger.debug(f"Verificação de email no Moodle: {email} {'existe' if result else 'não existe'}.")
-        return result is not None
-    except Exception as e:
-        logger.error(f"Erro ao verificar email no Moodle: {email} — {e}")
-        return False
-
-# Função para obter o papel do utilizador no Moodle e traduzi-lo para papel local
-def get_user_role_from_moodle(email):
-    try:
-        conn = get_moodle_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT r.shortname
+        conn = connect_to_moodle_db()
+        with conn.cursor(dictionary=True) as cursor:
+            query = """
+                SELECT
+                    u.id AS moodle_user_id,
+                    u.email,
+                    u.firstname,
+                    u.lastname,
+                    r.shortname AS moodle_role
                 FROM mdl_user u
                 JOIN mdl_role_assignments ra ON u.id = ra.userid
-                JOIN mdl_role r ON ra.roleid = r.id
+                JOIN mdl_role r ON r.id = ra.roleid
                 WHERE u.email = %s
                 LIMIT 1;
-            """, (email,))
+            """
+            logger.debug(f"Query ao Moodle: {query.strip()} | Parâmetro: {email}")
+            cursor.execute(query, (email,))
             result = cursor.fetchone()
+            logger.debug(f"Resultado da query para {email}: {result}")
         conn.close()
 
         if result:
+            # Se o utilizador não tiver role atribuída no Moodle
+            if not result.get('moodle_role'):
+                logger.warning(f"Utilizador {email} existe no Moodle mas não tem role atribuída.")
+                return {'error': 'sem_role'}
+
+            # Mapeamento de roles Moodle → sistema local
             role_map = {
                 'student': 'aluno',
                 'editingteacher': 'professor',
                 'teacher': 'professor',
                 'manager': 'admin'
             }
-            role = role_map.get(result['shortname'], 'desconhecido')
-            logger.debug(f"Role obtido do Moodle para {email}: {result['shortname']} → {role}")
-            return role
+            result['mapped_role'] = role_map.get(result['moodle_role'], 'desconhecido')
+            return result
         else:
-            logger.warning(f"Não foi encontrado role para o email {email} no Moodle.")
             return None
     except Exception as e:
-        logger.error(f"Erro ao obter o role do utilizador no Moodle ({email}): {e}")
+        logger.error(f"Erro ao obter informações do utilizador {email} no Moodle: {e}")
         return None
 
 # Função para registar o utilizador localmente, caso exista no Moodle
 def register_user(email, password):
     try:
+        # Verifica se já existe localmente
         conn = sqlite3.connect('db/uniAnalytics.db')
         cursor = conn.cursor()
-
         cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
         if cursor.fetchone():
             logger.info(f"Tentativa de registo com email já existente: {email}")
             conn.close()
-            return False, "Email já registado localmente."
+            return False, "Email já registado localmente.", None
 
-        if not email_exists_in_moodle(email):
+        # Vai buscar as informações do Moodle
+        user_info = get_user_info_from_moodle(email)
+        if not user_info:
             logger.info(f"Tentativa de registo com email não existente no Moodle: {email}")
             conn.close()
-            return False, "Email não encontrado no Moodle."
+            return False, "Email não encontrado no Moodle.", None
 
-        role = get_user_role_from_moodle(email)
-        if role == 'desconhecido' or not role:
-            logger.warning(f"Registo falhado para {email}: role inválido ({role})")
+        # Se não tem role atribuída
+        if user_info.get('error') == 'sem_role':
+            logger.warning(f"Falha no registo do utilizador: {email} — Email encontrado mas sem role associada.")
             conn.close()
-            return False, "Role do utilizador não autorizado ou não identificado."
+            return False, "Utilizador encontrado no Moodle mas sem role associada.", None
 
+        role = user_info['mapped_role']
+        if role == 'desconhecido':
+            logger.warning(f"Registo falhado para {email}: role inválido ({user_info['moodle_role']})")
+            conn.close()
+            return False, "Role do utilizador não autorizado ou não identificado.", None
+
+        # Gera o hash da password e insere na base de dados local
         password_hash = generate_password_hash(password)
-        cursor.execute("INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
-                       (email, password_hash, role))
+        cursor.execute("""
+            INSERT INTO users (moodle_user_id, email, password_hash, role)
+            VALUES (?, ?, ?, ?)
+        """, (user_info['moodle_user_id'], email, password_hash, role))
         conn.commit()
         conn.close()
 
         logger.info(f"Utilizador registado com sucesso: {email} ({role})")
-        return True, f"Conta criada com sucesso com o role: {role}"
+        return True, f"Conta criada com sucesso com o role: {role}", user_info
     except Exception as e:
         logger.error(f"Erro no registo do utilizador {email}: {e}")
-        return False, "Erro interno ao registar o utilizador."
+        return False, "Erro interno ao registar o utilizador.", None
 
 # Função para autenticar um utilizador local (login)
 def authenticate_user(email, password):
     try:
         conn = sqlite3.connect('db/uniAnalytics.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT password_hash FROM users WHERE email = ?", (email,))
+
+        # Vai buscar o hash da password, id do utilizador e role
+        cursor.execute("SELECT moodle_user_id, password_hash, role FROM users WHERE email = ?", (email,))
         result = cursor.fetchone()
         conn.close()
 
-        if result and check_password_hash(result[0], password):
+        # Verifica se encontrou e se a password está correta
+        if result and check_password_hash(result[1], password):
+            moodle_user_id, _, role = result
             logger.info(f"Login bem-sucedido: {email}")
-            return True
+            return {
+                "moodle_user_id": moodle_user_id,
+                "mapped_role": role
+            }
         else:
             logger.warning(f"Tentativa de login falhada para {email}")
-            return False
+            return None
     except Exception as e:
         logger.error(f"Erro na autenticação do utilizador {email}: {e}")
-        return False
-
-# Função auxiliar para obter o papel de um utilizador local autenticado
-def get_user_role(email):
-    try:
-        conn = sqlite3.connect('db/uniAnalytics.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT role FROM users WHERE email = ?", (email,))
-        result = cursor.fetchone()
-        conn.close()
-        if result:
-            logger.debug(f"Role local de {email}: {result[0]}")
-        else:
-            logger.warning(f"Role não encontrado para {email}")
-        return result[0] if result else None
-    except Exception as e:
-        logger.error(f"Erro ao obter o role local de {email}: {e}")
         return None
