@@ -11,7 +11,7 @@ from dashboards.dashboardGeral import layout as layout_geral
 # Funções de lógica modular
 # =========================
 
-def calcular_pct_completions(dados, aluno_id, course_id, tipos, apenas_ids=None):
+def calcular_pct_completions(dados, aluno_id, course_id, tipos, grupo_aluno=None, apenas_ids=None):
     # Filtra dados relevantes para o aluno e curso
     dados_filtrados = [
         d for d in dados
@@ -20,10 +20,23 @@ def calcular_pct_completions(dados, aluno_id, course_id, tipos, apenas_ids=None)
         and (apenas_ids is None or d['coursemodule_id'] in apenas_ids)
     ]
 
-    # Conta apenas os módulos únicos disponíveis no curso
-    ids_unicos = set(d['coursemodule_id'] for d in dados_filtrados)
+    # Excluir atividades irrelevantes conforme o grupo
+    if grupo_aluno:
+        grupo_aluno = grupo_aluno.lower()
+        dados_filtrados = [
+            d for d in dados_filtrados
+            if not (
+                d['module_type'] == 'assign' and (
+                    # Excluir "exame" e "exame de recurso" para Avaliação Contínua
+                    ("aval" in grupo_aluno and any(e in (d.get('itemname') or '').lower() for e in ['exame'])) or
+                    # Excluir "efolios" e "global" para grupo Exame
+                    ("exam" in grupo_aluno and any(e in (d.get('itemname') or '').lower() for e in ['efolio', 'global']))
+                )
+            )
+        ]
 
-    # Agora conta os completados pelo aluno
+    # IDs únicos e completados
+    ids_unicos = set(d['coursemodule_id'] for d in dados_filtrados)
     completados = set(
         d['coursemodule_id']
         for d in dados_filtrados
@@ -120,13 +133,13 @@ def layout(aluno_id, course_id):
             dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
         )
         formativas = calcular_pct_completions(
-            dados_completions, aluno_id, course_id, ['page', 'resource']
+            dados_completions, aluno_id, course_id, ['page', 'resource', 'lesson']
         )
         quizz = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['quiz']
         )
         progresso_global = calcular_pct_completions(
-            dados_completions, aluno_id, course_id, ['assign', 'page', 'resource', 'quiz']
+            dados_completions, aluno_id, course_id, ['assign', 'page', 'resource', 'quiz', 'Links', 'lesson'], grupo_aluno=grupo_aluno
         )
 
         forum_criados = contar_topicos_criados(dados_forum, aluno_id, course_id)
