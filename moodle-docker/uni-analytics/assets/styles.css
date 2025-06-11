@@ -1,4 +1,4 @@
-/* ===============================More actions
+/* ===============================
    ESTILOS GERAIS DA APLICAÇÃO
    =============================== */
 body {
@@ -154,10 +154,14 @@ body {
    =============================== */
 .card-forum {
     width: 250px;
+    min-height: 300px;     /* ← altura mais equilibrada */
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 360px;
+    justify-content: flex-start;
+    padding: 20px;
+    height: fit-content;
+    padding-bottom: 30px;
 }
 
 .forum-box {
@@ -263,6 +267,11 @@ body {
 .bg-teal {
     background-color: #b2d7d5;
 }
+
+.bg-purple {
+    background-color: #d3b8ff;
+}
+
 /* ===============================
    MEDIDOR DE DESEMPENHO GLOBAL
    =============================== */
@@ -469,7 +478,12 @@ textarea::placeholder {
   flex-direction: column;
 }
 
-.dashboard-professor .coluna-esquerda > .card,
+.dashboard-professor .coluna-esquerda > .card {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+
 .dashboard-professor .coluna-direita > .card {
   flex: 1;
   display: flex;

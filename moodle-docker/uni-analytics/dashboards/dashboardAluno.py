@@ -107,7 +107,7 @@ def contar_respostas(dados, aluno_id, course_id):
     )
 
 def contar_interacoes_aluno(dados, aluno_id, course_id):
-    tipos = ['Ficheiros', 'Páginas', 'Links', 'Livros', 'Pastas', 'Quizzes']
+    tipos = ['Ficheiros', 'Páginas', 'Links', 'Livros', 'Pastas', 'Quizzes', 'Lições']
     contagem = {tipo: 0 for tipo in tipos}
     for d in dados:
         if d['userid'] == aluno_id and d['courseid'] == course_id:
@@ -189,7 +189,7 @@ def render_progresso_atividades(avaliacao, formativas, quizz):
     ])
 
 def render_mensagens_forum(criados, respondidos):
-    return html.Div(className="card card-forum", style={"paddingTop": "14px", "paddingBottom": "10px", "marginTop": "0px"}, children=[
+    return html.Div(className="card card-forum", children=[
         html.H4("Mensagens do fórum", className="card-section-title"),
         html.Div(className="forum-box", children=[
             html.Div(className="forum-created-box", children=[
@@ -212,10 +212,11 @@ def render_volume_interacao(contagem):
         "Links": "mdi:link-variant",
         "Livros": "mdi:book-open-page-variant",
         "Pastas": "mdi:folder-outline",
-        "Quizzes": "mdi:clipboard-outline"
+        "Quizzes": "mdi:clipboard-outline",
+        "Lições": "mdi:book-education-outline"
     }
 
-    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal"]
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple"]
 
     return html.Div(className="card card-volume", children=[
         html.H4("Volume de Interação", className="card-section-title"),

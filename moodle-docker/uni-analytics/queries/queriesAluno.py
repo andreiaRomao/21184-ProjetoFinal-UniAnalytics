@@ -18,7 +18,7 @@ SELECT
     m.name AS module_type,
     cmc.userid,
     cmc.completionstate,
-    gi.itemname,
+    COALESCE(gi.itemname, CONCAT('[ID ', cm.id, ']')) AS itemname,
     gu.groupid,
     gu.groupname,
     gg.finalgrade
@@ -30,6 +30,7 @@ INNER JOIN mdl_course_modules_completion cmc
 LEFT JOIN mdl_grade_items gi 
     ON gi.iteminstance = cm.instance 
    AND gi.itemtype = 'mod' 
+   AND gi.itemmodule = m.name          -- garante correspondência com o tipo correto (assign, quiz, lesson...)
    AND gi.courseid = cm.course
 LEFT JOIN mdl_grade_grades gg 
     ON gg.itemid = gi.id 
@@ -38,6 +39,7 @@ LEFT JOIN grupo_unico gu
     ON gu.userid = cmc.userid 
    AND gu.courseid = cm.course
 WHERE cm.completion > 0;
+
    
     """
     try:
@@ -66,6 +68,7 @@ def fetch_all_interacoes():
             WHEN l.eventname LIKE '%mod_book%'     THEN 'Livros'
             WHEN l.eventname LIKE '%mod_folder%'   THEN 'Pastas'
             WHEN l.eventname LIKE '%mod_quiz%'     THEN 'Quizzes'
+            WHEN l.eventname LIKE '%mod_lesson%'   THEN 'Lições' 
             WHEN l.eventname LIKE '%mod_assign%'   THEN 'Tarefas'
             WHEN l.eventname LIKE '%mod_forum%'    THEN 'Fóruns'
             ELSE 'Outro'
@@ -80,6 +83,7 @@ def fetch_all_interacoes():
             l.eventname LIKE '%mod_book%'     OR
             l.eventname LIKE '%mod_folder%'   OR
             l.eventname LIKE '%mod_quiz%'     OR
+            l.eventname LIKE '%mod_lesson%'   OR 
             l.eventname LIKE '%mod_assign%'   OR
             l.eventname LIKE '%mod_forum%'
           );

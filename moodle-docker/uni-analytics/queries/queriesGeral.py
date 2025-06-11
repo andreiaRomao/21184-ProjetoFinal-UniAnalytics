@@ -5,17 +5,18 @@ def fetch_user_course_data():
     conn = connect_to_moodle_db()
     query = """
         SELECT
-          u.id                                AS userid,
+          u.id AS userid,
+          u.email AS email,
           CONCAT(u.firstname, ' ', u.lastname) AS name,
-          r.shortname                         AS role,
-          c.id                                AS courseid,
-          c.fullname                          AS course_name
+          r.shortname AS role,
+          c.id AS courseid,
+          c.fullname AS course_name
         FROM mdl_user u
         JOIN mdl_role_assignments ra ON ra.userid = u.id
-        JOIN mdl_context ctx          ON ctx.id = ra.contextid AND ctx.contextlevel = 50  -- 50 = nível de curso
-        JOIN mdl_course c            ON c.id = ctx.instanceid
-        JOIN mdl_role r              ON r.id = ra.roleid
-        ORDER BY courseid, role, name;
+        JOIN mdl_context ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50 
+        JOIN mdl_course c ON c.id = ctx.instanceid
+        JOIN mdl_role r ON r.id = ra.roleid
+        ORDER BY courseid, role, name;        
     """
     cursor = conn.cursor()
     cursor.execute(query)

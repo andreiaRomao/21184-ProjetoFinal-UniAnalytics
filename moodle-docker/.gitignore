@@ -14,6 +14,9 @@ node_modules/
 # Ignorar logs do módulo uni-analytics
 uni-analytics/logs/
 
+# Ignorar base de dados local
+uni-analytics/db/uniAnalytics.db
+
 # Ignorar todos os ficheiros .sh da pasta moodle-docker
 backup.sh
 restore.sh

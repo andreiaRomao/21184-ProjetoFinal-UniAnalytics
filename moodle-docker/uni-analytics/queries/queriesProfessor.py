@@ -12,7 +12,7 @@ def fetch_conteudos_disponibilizados():
             m.name AS module_type
         FROM mdl_course_modules cm
         JOIN mdl_modules m ON m.id = cm.module
-        WHERE m.name IN ('resource', 'page', 'url', 'book', 'folder', 'quiz');
+        WHERE m.name IN ('resource', 'page', 'url', 'book', 'folder', 'quiz', 'lesson');
     """
     try:
         cursor = conn.cursor(dictionary=True)

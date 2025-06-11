@@ -19,7 +19,8 @@ def contar_conteudos_publicados(dados, professor_id, course_id):
         'url': 'Links',
         'book': 'Livros',
         'folder': 'Pastas',
-        'quiz': 'Quizzes'
+        'quiz': 'Quizzes',
+        'lesson': 'Lições' 
     }
     contagem = {nome: 0 for nome in tipos.values()}
     for d in dados:
@@ -147,9 +148,10 @@ def render_conteudos_publicados(contagem):
         "Links": "mdi:link-variant",
         "Livros": "mdi:book-open-page-variant",
         "Pastas": "mdi:folder-outline",
-        "Quizzes": "mdi:clipboard-outline"
+        "Quizzes": "mdi:clipboard-outline",
+        "Lições": "mdi:book-education-outline" 
     }
-    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal"]
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal","bg-purple"]
 
     return html.Div(className="card card-volume", children=[
         html.H4("Conteúdos Publicados", className="card-section-title"),
