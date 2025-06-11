@@ -48,14 +48,25 @@ def layout():
             ]),
 
             # Botões de ação: guardar, listar e apagar perguntas
-            html.Div(style={"marginTop": "20px", "display": "flex", "gap": "10px", "flexWrap": "wrap"}, children=[
+            html.Div(style={
+                        "marginTop": "20px",
+                        "display": "flex",
+                        "gap": "10px",
+                        "flexWrap": "wrap",
+                        "justifyContent": "center", 
+                        "width": "100%" 
+                    }, children=[
                 html.Button("Guardar Pergunta", id="guardar-pergunta-btn", className="btn"),
                 html.Button("Listar Perguntas", id="listar-perguntas-btn", className="btn"),
-                html.Button("Apagar Pergunta", id="mostrar-apagar-btn", className="btn")
+                html.Button("Apagar Pergunta", id="mostrar-apagar-btn", className="btn"),
+                html.Button("Editar Pergunta", id="mostrar-editar-btn", className="btn")
             ]),
 
             # Zona que será preenchida com inputs e botões para apagar pergunta
             html.Div(id="apagar-section", children=[], style={"marginTop": "20px"}),
+
+            # Zona que será preenchida com inputs e botões para editar pergunta
+            html.Div(id="editar-section", children=[], style={"marginTop": "20px"}),
 
             # Zona para apresentar mensagens ao utilizador
             html.Div(id="mensagem-admin", style={"marginTop": "20px", "fontWeight": "bold"}),
@@ -219,15 +230,46 @@ def register_callbacks(app):
 
     # Apaga pergunta e respetivas respostas associadas
     @app.callback(
-        Output("mensagem-admin", "children", allow_duplicate=True),
-        Output("lista-perguntas", "children", allow_duplicate=True),
-        Output("secao-lista-perguntas", "style", allow_duplicate=True),
+        Output("mensagem-admin", "children", allow_duplicate=True),  # Mensagem de confirmação ou erro
+        Output("lista-perguntas", "children", allow_duplicate=True),  # Atualiza lista de perguntas após remoção
+        Output("secao-lista-perguntas", "style", allow_duplicate=True),  # Garante que a secção está visível
         Input("apagar-pergunta-btn", "n_clicks"),
         State("id-pergunta-apagar", "value"),
         State("tipo-formulario-admin", "value"),
         prevent_initial_call=True
     )
     def apagar_pergunta(n_clicks, pergunta_id, tipo_form):
+        # Valida se foi introduzido um ID
+        if not pergunta_id:
+            return "Por favor insere um ID válido para apagar.", dash.no_update, dash.no_update
+
+        try:
+            conn = connect_to_uni_analytics_db()
+            cursor = conn.cursor()
+
+            # Verifica se a pergunta com o ID fornecido existe
+            cursor.execute("SELECT COUNT(*) FROM forms_questions WHERE id = ?", (pergunta_id,))
+            existe = cursor.fetchone()[0]
+            if existe == 0:
+                conn.close()
+                return f"A pergunta com ID {pergunta_id} não existe.", dash.no_update, dash.no_update
+
+            # Apaga as respostas associadas à pergunta
+            cursor.execute("DELETE FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+
+            # Apaga a pergunta propriamente dita
+            cursor.execute("DELETE FROM forms_questions WHERE id = ?", (pergunta_id,))
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"[ADMIN] Pergunta apagada com sucesso: id={pergunta_id}")
+            return f"Pergunta ID {pergunta_id} apagada com sucesso.", listar_perguntas_html(tipo_form), {"display": "block"}
+
+        except Exception as e:
+            logger.exception("[ADMIN] Erro ao apagar pergunta")
+            return f"Erro ao apagar: {str(e)}", dash.no_update, dash.no_update
+
         if not pergunta_id:
             return "Por favor insere um ID válido para apagar.", dash.no_update, dash.no_update
 
@@ -243,3 +285,140 @@ def register_callbacks(app):
         except Exception as e:
             logger.exception("[ADMIN] Erro ao apagar pergunta")
             return f"Erro ao apagar: {str(e)}", dash.no_update, dash.no_update
+
+    # Mostra os inputs para editar pergunta (ID, novo texto e respostas)
+    @app.callback(
+        Output("editar-section", "children"),
+        Input("mostrar-editar-btn", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def mostrar_input_editar(n):
+        return html.Div([
+            dcc.Store(id="dados-pergunta-store"),
+            html.Div(className="form-group", children=[
+                html.Label("ID da Pergunta a Editar"),
+                dcc.Input(
+                    id="id-pergunta-editar",
+                    type="number",
+                    placeholder="Insere o ID da pergunta",
+                    className="pergunta-opcao"
+                ),
+                html.Button(
+                    "Carregar Dados",
+                    id="carregar-pergunta-btn",
+                    className="btn",
+                    style={"marginTop": "10px"}
+                )
+            ]),
+            html.Div(id="editar-formulario-preenchido")
+        ])
+    
+    # Callback para editar uma pergunta existente
+    @app.callback(
+        Output("mensagem-admin", "children", allow_duplicate=True),
+        Output("lista-perguntas", "children", allow_duplicate=True),
+        Output("secao-lista-perguntas", "style", allow_duplicate=True),
+        Input("editar-pergunta-btn", "n_clicks"),
+        State("id-pergunta-editar", "value"),
+        State("novo-texto-pergunta", "value"),
+        State("novas-respostas", "value"),
+        State("tipo-formulario-admin", "value"),
+        State("dados-pergunta-store", "data"),
+        prevent_initial_call=True
+    )
+    def editar_pergunta(n_clicks, pergunta_id, novo_texto, novas_respostas_raw, tipo_form, dados_store):
+        if not pergunta_id:
+            return "Por favor preenche o ID da pergunta.", dash.no_update, dash.no_update
+
+        try:
+            conn = connect_to_uni_analytics_db()
+            cursor = conn.cursor()
+            now = datetime.datetime.now().isoformat()
+
+            # Atualizar texto da pergunta se fornecido
+            if novo_texto:
+                cursor.execute(
+                    "UPDATE forms_questions SET question = ?, updated_at = ? WHERE id = ?",
+                    (novo_texto, now, pergunta_id)
+                )
+
+            # Atualizar respostas se fornecido
+            if novas_respostas_raw:
+                novas_respostas = [r.strip() for r in novas_respostas_raw.split("\n") if r.strip()]
+                if len(novas_respostas) != dados_store.get("num_respostas", 0):
+                    return "O número de respostas não pode ser alterado.", dash.no_update, dash.no_update
+
+                cursor.execute("SELECT id FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+                respostas_ids = [r[0] for r in cursor.fetchall()]
+
+                for rid, novo_texto_r in zip(respostas_ids, novas_respostas):
+                    cursor.execute(
+                        "UPDATE forms_answers SET answer = ?, updated_at = ? WHERE id = ?",
+                        (novo_texto_r, now, rid)
+                    )
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"[ADMIN] Pergunta ID {pergunta_id} editada com sucesso.")
+            return f"Pergunta ID {pergunta_id} editada com sucesso.", listar_perguntas_html(tipo_form), {"display": "block"}
+
+        except Exception as e:
+            logger.exception("[ADMIN] Erro ao editar")
+            return f"Erro ao editar: {str(e)}", dash.no_update, dash.no_update
+
+    @app.callback(
+        Output("editar-formulario-preenchido", "children"),
+        Output("dados-pergunta-store", "data"),
+        Input("carregar-pergunta-btn", "n_clicks"),
+        State("id-pergunta-editar", "value"),
+        prevent_initial_call=True
+    )
+    def carregar_dados_pergunta(n_clicks, pergunta_id):
+        if not pergunta_id:
+            return "Por favor insere um ID válido.", dash.no_update
+
+        try:
+            conn = connect_to_uni_analytics_db()
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT question FROM forms_questions WHERE id = ?", (pergunta_id,))
+            row = cursor.fetchone()
+            if not row:
+                return f"Pergunta com ID {pergunta_id} não encontrada.", dash.no_update
+
+            texto_pergunta = row[0]
+
+            cursor.execute("SELECT answer FROM forms_answers WHERE question_id = ?", (pergunta_id,))
+            respostas = [r[0] for r in cursor.fetchall()]
+
+            conn.close()
+
+            return html.Div(className="form-group", children=[
+                html.Label("Texto da Pergunta"),
+                dcc.Input(
+                    id="novo-texto-pergunta",
+                    type="text",
+                    value=texto_pergunta,
+                    className="pergunta-opcao"
+                ),
+                html.Label("Editar Respostas (uma por linha)"),
+                dcc.Textarea(
+                    id="novas-respostas",
+                    value="\n".join(respostas),
+                    className="pergunta-opcao",
+                    style={"width": "100%", "height": "100px"}
+                ),
+                html.Button(
+                    "Atualizar Pergunta",
+                    id="editar-pergunta-btn",
+                    className="btn",
+                    style={"marginTop": "10px"}
+                )
+            ]), {
+                "num_respostas": len(respostas)
+            }
+
+        except Exception as e:
+            logger.exception("[ADMIN] Erro ao carregar dados da pergunta")
+            return f"Erro ao carregar dados: {str(e)}", dash.no_update
