@@ -824,3 +824,176 @@ textarea::placeholder {
 #editar-pergunta-btn:hover {
     background-color: #12885d;
 }
+
+/* ===============================
+   ESTILOS PARA AUTENTICAÇÃO
+   =============================== */
+
+/* ===============================
+   LAYOUT E CONTAINER
+   =============================== */
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+}
+
+.auth-card-row {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 40px;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px 50px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth-title {
+    font-size: 30px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+
+/* ===============================
+   CAIXA LATERAL INFORMATIVA
+   =============================== */
+.auth-info-box {
+    background-color: #169c6d;
+    color: white;
+    padding: 40px 30px;
+    border-radius: 20px;
+    width: 400px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+}
+
+.auth-info-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.auth-info-box p {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* ===============================
+   CAMPOS E BOTÕES
+   =============================== */
+.auth-form-line {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 56px;
+    flex-wrap: nowrap; 
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.input-auth {
+    background: #fdfffa;
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 16px;
+    width: 220px;
+    color: #2c3e50;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    gap: 10px;
+    margin-right: 20px;
+}
+
+.auth-button {
+    background: #169c6d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.auth-button:hover {
+    background-color: #12885d;
+}
+
+/* ===============================
+   TEXTO E ERROS
+   =============================== */
+#login-message {
+    margin-top: 20px;
+    color: red;
+}
+
+.card-title-login {
+    font-size: 28px;
+    font-weight: bold;
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+}
+/* ===============================
+   TOGGLE DE MODO DE AUTENTICAÇÃO
+   =============================== */
+.auth-mode-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.auth-mode-toggle input[type="radio"] {
+    margin-right: 6px;
+    transform: scale(1.2);
+}
+
+.auth-mode-toggle label {
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* ===============================
+   BOTÃO DE TERMINAR SESSÃO (LOGOUT)
+   =============================== */
+.logout-btn {
+    display: none;
+    margin: 16px 30px 10px auto;
+    background-color: #169c6d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    float: right;
+}
+
+.logout-btn:hover {
+    background-color: #12885d;
+}
