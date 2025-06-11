@@ -11,3 +11,9 @@ moodledata/
 # Node/npm stuff (se usares futuramente)
 node_modules/
 
+# Ignorar logs do módulo uni-analytics
+uni-analytics/logs/
+
+# Ignorar todos os ficheiros .sh da pasta moodle-docker
+backup.sh
+restore.sh
