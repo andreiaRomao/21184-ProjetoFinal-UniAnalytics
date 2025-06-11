@@ -495,7 +495,121 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width:90%; /* Ajusta a largura do card do fórum */
+  width:90%; 
+}
+
+.linha-3-blocos {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 20px;
+  max-width: 1200px;
+  padding: 30px;
+  margin: 0 auto;
+  background-color: #f4faf4;
+  box-sizing: border-box;
+}
+
+.card-bloco {
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  flex: 1;
+  min-height: auto;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+  max-width: 495px;           
+}
+
+/* GRELHA HORIZONTAL ENTRE GAUGE E BARRAS */
+.bloco-conclusao-linha {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+  justify-content: space-between; 
+}
+
+/* COLUNA DO GAUGE */
+.bloco-conclusao-gauge {
+  flex-shrink: 0;
+  width: 130px;
+  min-width: 130px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding-top: 10px;
+  padding-left: 10px;  
+}
+
+/* COLUNA DAS BARRAS */
+.bloco-conclusao-barras {
+  flex: 1;
+  max-width: 60%;
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+}
+
+/* BLOCO COM DOIS GRÁFICOS LADO A LADO */
+.bloco-mini-graficos {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 10px;             
+  padding: 0px 30px 30px;
+  max-width: 1000px;     
+  margin: 0 auto;
+  background-color: #f4faf4;
+}
+
+.card-bloco-altura-maior {
+  min-height: 500px; 
+  max-width: 800px;  
+  width: 100%;
+}
+
+.card-bloco-conclusao {
+  max-width: 1000px;
+  width: 100%;
+  padding: 20px 30px 10px 30px;  
+  box-sizing: border-box;
+  margin-bottom: 0px;
+}
+
+.bloco-conclusao-linha {
+  min-height: 140px;
+  display: flex;
+  gap: 30px;
+  margin-bottom: 24px;
+  align-items: center;
+  justify-content: flex-start; 
+}
+
+.bloco-conclusao-gauge {
+  flex-shrink: 0;
+  width: 130px;
+  min-width: 130px;
+  display: flex;
+  justify-content: flex-start; 
+  align-items: flex-start;
+  padding-top: 10px;
+  margin-left: 20px; 
+}
+
+.bloco-conclusao-barras {
+  flex: 1;
+  max-width: 100%;  
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  padding-left: 30px;   
+  padding-right: 10px;   
+  box-sizing: border-box;
 }
 
 /* ===============================

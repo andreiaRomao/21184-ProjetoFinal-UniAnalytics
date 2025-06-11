@@ -1,8 +1,12 @@
-from dash import html
+from dash import html, dcc
 from dash_iconify import DashIconify
 import queries.queriesProfessor as qp
 import queries.queriesGeral as qg
+import queries.queriesAluno as qa
+import plotly.graph_objects as go
+import plotly.express as px
 import traceback
+import pandas as pd
 from datetime import datetime
 from collections import defaultdict # para contagem de acessos semanais
 
@@ -95,6 +99,35 @@ def calcular_media_acessos_semanal(acessos, professor_id, course_id):
     else:
         return 0
 
+def calcular_distribuicao_desempenho_global_professor(dados, course_id):
+    distribuicao = {"Crítico": 0, "Em Risco": 0, "Expectável": 0}
+    alunos = set(d["userid"] for d in dados if d["course_id"] == course_id and d.get("userid"))
+
+    for aluno_id in alunos:
+        soma = 0.0
+        for d in dados:
+            if (
+                d.get('course_id') == course_id and
+                d.get('userid') == aluno_id and
+                d.get('module_type') == 'assign' and
+                d.get('finalgrade') is not None and
+                any(e in (d.get("itemname") or "").lower() for e in ['efolio', 'global'])
+            ):
+                try:
+                    soma += float(d['finalgrade'])
+                except (ValueError, TypeError):
+                    continue
+
+        if soma < 3.5:
+            distribuicao["Crítico"] += 1
+        elif soma < 4.5:
+            distribuicao["Em Risco"] += 1
+        else:
+            distribuicao["Expectável"] += 1
+
+    return distribuicao
+
+
 # =========================
 # Layout principal
 # =========================
@@ -110,7 +143,12 @@ def layout(professor_id, course_id):
 
         dados_acessos = qp.fetch_course_access_logs()
         media_acessos = calcular_media_acessos_semanal(dados_acessos, professor_id, course_id)
-        
+
+        dados_alunos = obter_dados_desempenho_alunos()
+
+        dados_completions = qa.fetch_all_completions() 
+        distribuicao = calcular_distribuicao_desempenho_global_professor(dados_completions, course_id)
+
     except Exception as e:
         print("[ERRO] (layout) Falha ao gerar o dashboard do professor.")
         traceback.print_exc()
@@ -123,7 +161,7 @@ def layout(professor_id, course_id):
             children=[
                 html.H3("Docente - Nível de Interação", className="dashboard-aluno-professor-titulo")
             ],
-            style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px","paddingBottom": "0px"}
+            style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}
         ),
 
         html.Div(className="dashboard-professor", children=[
@@ -133,8 +171,33 @@ def layout(professor_id, course_id):
             html.Div(className="coluna-direita", children=[
                 render_conteudos_publicados(contagem)
             ])
-        ])
+        ]),
+
+        html.Div(
+            children=[
+                html.H3("Alunos - Desempenho", className="dashboard-aluno-professor-titulo")
+            ],
+            style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}
+        ),
+
+        # BLOCO 1: Conclusão com dois conjuntos (avaliativas + formativas)
+        html.Div(className="linha-3-blocos", children=[
+            render_card_conclusao_atividades(
+                dados_alunos["gauge"],
+                {
+                    **dados_alunos["conclusao"]["avaliativas"],
+                    **dados_alunos["conclusao"]["formativas"]
+                }
+            )
+        ]),
+
+        # BLOCO 2: Médias e Estado Global lado a lado
+        render_card_mini_graficos(
+            dados_alunos["medias"],
+            distribuicao   
+        )
     ])
+
 
 
 # =========================
@@ -192,3 +255,161 @@ def render_card_forum(criados, respondidos, velocidade, media_acessos):
             ])
         ])
     ])
+
+# =========================
+
+def render_card_medias_classificacao(dados):
+    import plotly.graph_objects as go
+    labels = list(dados.keys())
+    valores = list(dados.values())
+    cores = ["#f4f7b6", "#d4d4d4", "#195350", "#45b39c"]
+
+    fig = go.Figure(go.Bar(
+        x=valores,
+        y=labels,
+        orientation='h',
+        marker=dict(color=cores),
+        text=valores,
+        textposition="auto"
+    ))
+
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=20, b=10),
+        height=200,
+        yaxis=dict(autorange="reversed"),
+        paper_bgcolor="white",
+        plot_bgcolor="white"
+    )
+
+    return html.Div(className="card-bloco", children=[
+        html.H4("Média de classificações por atividade", className="card-section-title"),
+        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
+    ])
+
+def render_card_conclusao_atividades(dados_gauge, dados_conclusao):
+    def barra(label, valor):
+        return html.Div(className="barra-container", children=[
+            html.Div(label, className="barra-label"),
+            html.Div(className="barra-fundo", children=[
+                html.Div(className="barra-progresso", style={
+                    "width": f"{valor}%",
+                    "backgroundColor": "#9eff58"
+                }),
+                html.Div(f"{valor}%", className="barra-texto")
+            ])
+        ])
+
+    def semicirculo(label, valor):
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=valor,
+            gauge={
+                'shape': "angular",
+                'axis': {'range': [0, 100]},
+                'bar': {'color': "#9eff58"},
+                'bgcolor': "#e6e6e6"
+            },
+            number={'font': {'size': 40}},
+            title={"text": ""}
+        ))
+        fig.update_layout(
+            margin=dict(t=20, b=0, l=0, r=0),
+            height=100,
+            width=130
+        )
+        
+        return dcc.Graph(
+            figure=fig,
+            config={"displayModeBar": False},
+            style={"height": "140px", "width": "130px", "margin": "0 auto"}
+        )
+
+    def bloco_conjunto(nome, valor_gauge, labels):
+        return html.Div(className="bloco-conclusao-linha", children=[
+            html.Div(className="bloco-conclusao-gauge", children=[
+                semicirculo(nome, valor_gauge)
+            ]),
+            html.Div(className="bloco-conclusao-barras", children=[
+                html.Div(nome, style={"fontWeight": "bold", "marginBottom": "6px"}),
+                *[barra(label, dados_conclusao[label]) for label in labels]
+            ])
+        ])
+
+    return html.Div(className="card-bloco card-bloco-conclusao", children=[
+        html.H4("Taxa de Conclusão de Atividades", className="card-section-title"),
+        bloco_conjunto("Avaliação", dados_gauge["avaliativas"], ["E-fólio A", "E-fólio B", "E-fólio Global"]),
+        bloco_conjunto("Formativas", dados_gauge["formativas"], ["AF1", "AF2", "AF3"]),
+        html.Div(style={"display": "flex", "justifyContent": "center", "marginTop": "0px"}, children=[
+            html.Span("🟩 Concluídas", style={"marginRight": "12px"}),
+            html.Span("⬜ Por concluir")
+        ])
+    ])
+
+
+
+def render_card_mini_graficos(medias, distribuicao):
+    return html.Div(className="bloco-mini-graficos", children=[
+        render_card_medias_classificacao(medias),
+        render_card_estado_global(distribuicao)
+    ])
+
+
+def render_card_estado_global(distribuicao):
+    import plotly.graph_objects as go
+
+    # Ordem garantida
+    estados = ["Crítico", "Em Risco", "Expectável"]
+    valores = [distribuicao.get(e, 0) for e in estados]
+    cores = ["#dc3545", "#ffc107", "#28a745"]  # vermelho, amarelo, verde
+
+    fig = go.Figure(data=[go.Pie(
+        labels=estados,
+        values=valores,
+        hole=0.4,
+        marker=dict(colors=cores),
+        sort=False  # mantém a ordem
+    )])
+
+    fig.update_layout(
+        margin=dict(t=0, b=0, l=0, r=0),
+        height=200
+    )
+
+    return html.Div(className="card-bloco", children=[
+        html.H4("Desempenho Global", className="card-section-title"),
+        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
+    ])
+
+
+def obter_dados_desempenho_alunos():
+    return {
+        "medias": {
+            "E-fólio A": 3.1,
+            "E-fólio B": 2.5,
+            "E-fólio Global": 8.6,
+            "Total": 14.2
+        },
+        "conclusao": {
+            "avaliativas": {
+                "E-fólio A": 95,
+                "E-fólio B": 62,
+                "E-fólio Global": 32
+            },
+            "formativas": {
+                "AF1": 53,
+                "AF2": 78,
+                "AF3": 89
+            }
+        },
+        "gauge": {
+            "avaliativas": 95,
+            "formativas": 45
+        },
+        "estado_global": {
+            "Crítico": 20,
+            "Em Risco": 30,
+            "Expectável": 50
+        }
+    }
+
+

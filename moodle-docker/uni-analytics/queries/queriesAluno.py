@@ -5,42 +5,40 @@ def fetch_all_completions():
     from db.moodleConnection import connect_to_moodle_db
     conn = connect_to_moodle_db()
     query = """      
-WITH grupo_unico AS (
-    SELECT gm.userid, g.id AS groupid, g.name AS groupname, g.courseid
-    FROM mdl_groups_members gm
-    JOIN mdl_groups g ON g.id = gm.groupid
-)
-
-SELECT
-    cm.id AS coursemodule_id,
-    cm.course AS course_id,
-    cm.added AS timecreated,
-    m.name AS module_type,
-    cmc.userid,
-    cmc.completionstate,
-    COALESCE(gi.itemname, CONCAT('[ID ', cm.id, ']')) AS itemname,
-    gu.groupid,
-    gu.groupname,
-    gg.finalgrade
-FROM mdl_course_modules cm
-JOIN mdl_modules m 
-    ON m.id = cm.module
-INNER JOIN mdl_course_modules_completion cmc 
-    ON cm.id = cmc.coursemoduleid
-LEFT JOIN mdl_grade_items gi 
-    ON gi.iteminstance = cm.instance 
-   AND gi.itemtype = 'mod' 
-   AND gi.itemmodule = m.name          -- garante correspondência com o tipo correto (assign, quiz, lesson...)
-   AND gi.courseid = cm.course
-LEFT JOIN mdl_grade_grades gg 
-    ON gg.itemid = gi.id 
-   AND gg.userid = cmc.userid
-LEFT JOIN grupo_unico gu 
-    ON gu.userid = cmc.userid 
-   AND gu.courseid = cm.course
-WHERE cm.completion > 0;
-
-   
+    WITH grupo_unico AS (
+        SELECT gm.userid, g.id AS groupid, g.name AS groupname, g.courseid
+        FROM mdl_groups_members gm
+        JOIN mdl_groups g ON g.id = gm.groupid
+    )
+    
+    SELECT
+        cm.id AS coursemodule_id,
+        cm.course AS course_id,
+        cm.added AS timecreated,
+        m.name AS module_type,
+        cmc.userid,
+        cmc.completionstate,
+        COALESCE(gi.itemname, CONCAT('[ID ', cm.id, ']')) AS itemname,
+        gu.groupid,
+        gu.groupname,
+        gg.finalgrade
+    FROM mdl_course_modules cm
+    JOIN mdl_modules m 
+        ON m.id = cm.module
+    INNER JOIN mdl_course_modules_completion cmc 
+        ON cm.id = cmc.coursemoduleid
+    LEFT JOIN mdl_grade_items gi 
+        ON gi.iteminstance = cm.instance 
+       AND gi.itemtype = 'mod' 
+       AND gi.itemmodule = m.name          -- garante correspondência com o tipo correto (assign, quiz, lesson...)
+       AND gi.courseid = cm.course
+    LEFT JOIN mdl_grade_grades gg 
+        ON gg.itemid = gi.id 
+       AND gg.userid = cmc.userid
+    LEFT JOIN grupo_unico gu 
+        ON gu.userid = cmc.userid 
+       AND gu.courseid = cm.course
+    WHERE cm.completion > 0;   
     """
     try:
         cursor = conn.cursor(dictionary=True)
