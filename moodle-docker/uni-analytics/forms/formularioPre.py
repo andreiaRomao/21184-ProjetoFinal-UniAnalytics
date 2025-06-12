@@ -6,7 +6,8 @@ from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 
 # Layout da página de formulário de Pré-Avaliação
-def layout():
+def layout(user_id):
+    logger.info(f"[PRE] Aluno com ID {user_id} acedeu ao formulário de pré-avaliação")
     return html.Div(className="dashboard-container", children=[
         html.Div(className="card", children=[
             dcc.Interval(id="init-load-pre", interval=1, n_intervals=0, max_intervals=1),
@@ -16,7 +17,7 @@ def layout():
             dcc.Store(id='etapa-pre', data=0),              # Etapa atual (0 = introdução)
             dcc.Store(id='respostas-pre', data={}),         # Respostas dadas até ao momento
             dcc.Store(id='perguntas-pre'),                  # Perguntas carregadas da base de dados
-            dcc.Store(id="aluno-id", data=999),             # Placeholder para ID do aluno (para ser dinâmico mais tarde)
+            dcc.Store(id="aluno-id", data=user_id),         # Valor dinâmico vindo da sessão
 
             # Área onde se apresenta a pergunta atual
             html.Div(id='pergunta-area-pre', children="A carregar perguntas..."),

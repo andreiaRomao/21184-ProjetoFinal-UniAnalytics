@@ -81,6 +81,10 @@ def display_page(pathname):
     if pathname in ["/", "/home"]:
         links = []
 
+        # Adicionar o link do Dashboard Geral para todos
+        links.append(dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", style={"display": "block", "margin": "10px"}))
+
+        # Adicionar links específicos com base no papel do utilizador
         if user_role == "admin":
             links.extend([
                 dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
@@ -101,6 +105,9 @@ def display_page(pathname):
             html.Div(links)
         ])
 
+    elif pathname == "/dashboards/dashboardGeral":
+        return dashboardGeral.layout(user_id, course_id)
+    
     elif pathname == "/dashboards/dashboardAluno":
         if user_role in ["aluno", "admin"]:
             return dashboardAluno.layout(user_id, course_id)
@@ -112,8 +119,8 @@ def display_page(pathname):
         return html.Div("Acesso não autorizado.")
 
     elif pathname.startswith("/forms/"):
-        if user_role in ["aluno", "admin"]:
-            form_layout = formularioMain.get_layout(pathname)
+        if user_role in ["aluno" ,"admin"]:
+            form_layout = formularioMain.get_layout(pathname, user_id)
             return form_layout if form_layout else html.Div("Formulário não encontrado.")
         return html.Div("Acesso não autorizado.")
 
