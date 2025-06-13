@@ -16,12 +16,13 @@ body {
 }
 
 .card {
-    background-color: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    padding: 30px;
-    max-width: 1000px;
-    width: 100%;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 30px;
+  width: 100%;         /* ← mantém para preencher a coluna */
+  max-width: unset;    /* ← impede que ultrapasse a largura da coluna */
+  box-sizing: border-box;
 }
 
 .card-title {
@@ -54,6 +55,135 @@ body {
     background-color: #f4faf4;
 }
 
+.dashboard-aluno-3colunas {
+  display: flex;
+  justify-content: space-between;    
+  align-items: flex-start;
+  gap: 40px;                       
+  padding: 10px 30px 30px; 
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f4faf4;
+  flex-wrap: nowrap;
+}
+
+.coluna-aluno {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.dashboard-aluno-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-aluno-card {
+  height: fit-content;
+  min-height: 160px;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  background-color: #ffffff;
+}
+
+.dashboard-aluno-forum-box {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    margin-top: 12px;
+    box-sizing: border-box;
+}
+
+.dashboard-aluno-forum-item {
+    flex: 1;
+    background-color: #7cc3ac;
+    border-radius: 12px;
+    padding: 20px 10px;
+    color: white;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70px; 
+    min-width: 0; 
+    max-width: 100%;     
+}
+
+.dashboard-aluno-forum-item-respondido {
+    background-color: #a4dfc1;
+}
+
+.dashboard-aluno-coluna:nth-child(1) {
+  max-width: 260px;
+}
+
+.dashboard-aluno-coluna:nth-child(2) {
+  max-width: 340px; 
+  flex-grow: 1;
+}
+
+.dashboard-aluno-coluna:nth-child(3) {
+  max-width: 440px; 
+  flex-grow: 2;     
+}
+
+/* Garante que o cartão ocupa toda a largura da coluna */
+.card-forum,
+.card-gauge {
+    width: 100%;
+    max-width: 100%;
+}
+
+.dashboard-aluno-coluna-titulo {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.dashboard-aluno-titulos-blocos {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 30px;
+  gap: 40px;
+  background-color: #f4faf4;
+  box-sizing: border-box;
+}
+
+.titulo-bloco-esquerdo {
+  width: 260px;
+  text-align: left;      
+  padding-left: 10px;    
+  flex-shrink: 0;
+}
+
+.titulo-bloco-direito {
+  width: 900px;       
+  text-align: center;   
+}
+
+.titulo-bloco-esquerdo h3,
+.titulo-bloco-direito h3 {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  padding: 0;
+  margin: 0;     
+}
+
 /* Coluna da esquerda (progresso, mensagens, interação) */
 .dashboard-grid .coluna-esquerda {
     display: flex;
@@ -78,7 +208,7 @@ body {
 }
 
 .dashboard-aluno-professor-titulo {
-  margin-top: 0px;
+  margin-top: 5px;
   margin-bottom: 4px;
   padding-top: 0px;
   padding-bottom: 0px;
@@ -102,6 +232,8 @@ body {
     margin-bottom: 8px;
     padding: 0;
     text-align: center;
+    width: 100%;
+    max-width: 100%;
 }
 
 /* ===============================
@@ -153,17 +285,19 @@ body {
    MENSAGENS DO FÓRUM
    =============================== */
 .card-forum {
-    width: 250px;
-    min-height: 300px;     /* ← altura mais equilibrada */
+    width: 100%;
+    min-width: 300px;   /* novo: assegura largura mínima */
+    max-width: 100%;    /* novo: impede quebra por limite */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 20px;
+    padding: 20px 24px 30px 24px;  /* ajustado */
     height: fit-content;
-    padding-bottom: 30px;
+    box-sizing: border-box;
 }
 
+/* Não sei se não vai ser apagado */
 .forum-box {
     width: 100%;
     display: flex;
@@ -194,12 +328,12 @@ body {
 }
 
 .forum-label {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
 }
 
 .forum-number {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
 }
 
@@ -207,7 +341,7 @@ body {
    VOLUME DE INTERAÇÃO
    =============================== */
 .card-volume {
-    width: 250px;
+    width: 350px; /* estava 250 */
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -272,18 +406,26 @@ body {
     background-color: #d3b8ff;
 }
 
+.bg-pink {
+  background-color: #f7b6d2; 
+}
+
+.bg-gray {
+  background-color: #d0d0d0; 
+}
+
 /* ===============================
    MEDIDOR DE DESEMPENHO GLOBAL
    =============================== */
 .card-gauge {
-    width: 100%;
-    max-width: 280px;
-    min-height: 180px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow: hidden;
+  width: 100%;
+  max-width: 100%;            /* ← igual ao forum */
+  min-width: 200px;           /* ← igual ao que definiste no forum */
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;     /* ← importante para respeitar padding */
 }
 
 .gauge-wrapper {

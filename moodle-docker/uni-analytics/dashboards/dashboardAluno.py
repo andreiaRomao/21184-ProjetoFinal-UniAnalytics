@@ -69,26 +69,39 @@ def obter_assigns_validos(dados, course_id, grupo_aluno):
     return assigns_validos
 
 def calcular_desempenho_etl(dados, aluno_id, course_id):
+    grupo_aluno = None
+    for d in dados:
+        if d.get("userid") == aluno_id and d.get("course_id") == course_id:
+            grupo_aluno = (d.get("groupname") or "").strip().lower()
+            break
+
+    # Se não tiver grupo ou não for grupo "aval", retorna "Não Aplicável"
+    if not grupo_aluno or "aval" not in grupo_aluno:
+        return "Não Aplicável"
+
     soma = 0.0
     for d in dados:
         if (
-            d.get('course_id') == course_id and
-            d.get('userid') == aluno_id and
-            d.get('module_type') == 'assign' and
-            d.get('finalgrade') is not None and
-            any(e in (d.get("itemname") or "").lower() for e in ['efolio', 'global'])
+            d.get("course_id") == course_id and
+            d.get("userid") == aluno_id and
+            d.get("module_type") == "assign" and
+            d.get("finalgrade") is not None
         ):
-            try:
-                soma += float(d['finalgrade'])
-            except (ValueError, TypeError):
-                print(f"[AVISO] Nota inválida ignorada: {d['finalgrade']}")
-                continue
+            nome = (d.get("itemname") or "").lower()
+            if any(e in nome for e in ['efolio', 'global']):
+                try:
+                    soma += float(d['finalgrade'])
+                except (ValueError, TypeError):
+                    print(f"[AVISO] Nota inválida ignorada: {d['finalgrade']}")
+                    continue
+
     if soma < 3.5:
         return "Crítico"
     elif soma < 4.5:
         return "Em Risco"
     else:
         return "Expectável"
+
 
 def contar_topicos_criados(dados, aluno_id, course_id):
     return sum(
@@ -107,14 +120,59 @@ def contar_respostas(dados, aluno_id, course_id):
     )
 
 def contar_interacoes_aluno(dados, aluno_id, course_id):
-    tipos = ['Ficheiros', 'Páginas', 'Links', 'Livros', 'Pastas', 'Quizzes', 'Lições']
+    tipos = [
+        'Ficheiros', 'Páginas', 'Links', 'Livros', 'Pastas',
+        'Quizzes', 'Lições', 'Atividades Formativas', 'Conteúdos Multimédia'
+    ]
     contagem = {tipo: 0 for tipo in tipos}
+
     for d in dados:
         if d['userid'] == aluno_id and d['courseid'] == course_id:
             tipo = d.get('tipo_interacao')
+
             if tipo in contagem:
                 contagem[tipo] += 1
+
+                # Adiciona também à categoria "Atividades Formativas" se for um dos tipos base
+                if tipo in ['Páginas', 'Ficheiros', 'Lições']:
+                    contagem['Atividades Formativas'] += 1
+
     return contagem
+
+
+
+
+def get_dashboard_top_info(userid, course_id):
+    try:
+        cursos = qg.fetch_user_course_data()
+
+        # Filtra apenas pelo utilizador e curso atual
+        linha = cursos[(cursos['userid'] == userid) & (cursos['courseid'] == course_id)].head(1)
+
+        if not linha.empty:
+            nome = linha['name'].values[0]
+            papel_raw = linha['role'].values[0].lower()
+            papel = "ALUNO" if "student" in papel_raw else "PROFESSOR"
+            nome_curso = linha['course_name'].values[0]
+        else:
+            nome = "Utilizador Desconhecido"
+            papel = "-"
+            nome_curso = f"{course_id} - UC Desconhecida"
+
+        return nome, papel, nome_curso
+
+    except Exception as e:
+        print("[ERRO] (get_dashboard_top_info):", e)
+        return "Erro", "Erro", "Erro"
+
+def extrair_ano_letivo(course_name):
+    import re
+    match = re.search(r'_(\d{2})', course_name)
+    if match:
+        sufixo = int(match.group(1))
+        ano_inicio = 2000 + sufixo
+        return f"{ano_inicio}/{ano_inicio + 1}"
+    return None
 
 # =========================
 # Layout principal
@@ -132,14 +190,9 @@ def layout(aluno_id, course_id):
         avaliacao = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
         )
-        formativas = calcular_pct_completions(
-            dados_completions, aluno_id, course_id, ['page', 'resource', 'lesson']
-        )
-        quizz = calcular_pct_completions(
-            dados_completions, aluno_id, course_id, ['quiz']
-        )
+        
         progresso_global = calcular_pct_completions(
-            dados_completions, aluno_id, course_id, ['assign', 'page', 'resource', 'quiz', 'Links', 'lesson'], grupo_aluno=grupo_aluno
+            dados_completions, aluno_id, course_id, ['page', 'resource', 'quiz', 'lesson'], grupo_aluno=grupo_aluno
         )
 
         forum_criados = contar_topicos_criados(dados_forum, aluno_id, course_id)
@@ -154,24 +207,37 @@ def layout(aluno_id, course_id):
         return html.Div("Erro ao ligar à base de dados.")
 
     return html.Div(children=[
-        layout_geral(aluno_id, course_id),  # Parte superior: Geral da UC
+        render_topo_geral(aluno_id, course_id),  # Barra superior com informações do aluno
 
-        html.Div(
-            children=[
-                html.H3("Aluno - Nível de Interação", className="dashboard-aluno-professor-titulo")
-            ],
-            style={"marginTop": "0px", "paddingTop": "0px", "height": "auto","lineHeight": "1"}
-        ),
+        html.Div(children=[
+            html.H2("Aluno - Informação Geral do aluno", style={
+                "fontSize": "26px",
+                "fontWeight": "bold",
+                "color": "#2c3e50",
+                "marginBottom": "8px",
+                "text-align": "center"
+            })
+        ]),
+        html.Div(className="dashboard-aluno-titulos-blocos", children=[
+            html.Div(className="titulo-bloco-esquerdo", children=[
+                html.H3("Evolução da Avaliação")
+            ]),
+            html.Div(className="titulo-bloco-direito", children=[
+                html.H3("Nível de Interação")
+            ])
+        ]),
 
-        html.Div(className="dashboard-grid", children=[
-            html.Div(className="coluna-esquerda", children=[
-                render_progresso_atividades(avaliacao, formativas, quizz),
-                render_mensagens_forum(forum_criados, forum_respostas),
+        html.Div(className="dashboard-aluno-3colunas", children=[
+            html.Div(className="dashboard-aluno-coluna", children=[
+                render_progresso_atividades(avaliacao),
+                render_desempenho(desempenho)
+            ]),
+            html.Div(className="dashboard-aluno-coluna", children=[
                 render_volume_interacao(interacoes)
             ]),
-            html.Div(className="coluna-direita", children=[
-                render_progresso_global(progresso_global),
-                render_desempenho(desempenho)
+            html.Div(className="dashboard-aluno-coluna", children=[
+                render_mensagens_forum(forum_criados, forum_respostas),
+                render_progresso_global(progresso_global)
             ])
         ])
     ])
@@ -180,24 +246,22 @@ def layout(aluno_id, course_id):
 # Componentes visuais
 # =========================
 
-def render_progresso_atividades(avaliacao, formativas, quizz):
+def render_progresso_atividades(avaliacao):
     return html.Div(className="card card-progresso", children=[
-        html.H4("Progresso das Actividades", className="card-section-title"),
-        barra_personalizada("Avaliação", avaliacao, "#e2f396"),
-        barra_personalizada("Formativas", formativas, "#76d19e"),
-        barra_personalizada("Quizz", quizz, "#289c83"),
+        html.H4("Progresso da Avaliação", className="card-section-title"),
+        barra_personalizada("Avaliação", avaliacao, "#e2f396")
     ])
 
 def render_mensagens_forum(criados, respondidos):
     return html.Div(className="card card-forum", children=[
         html.H4("Mensagens do fórum", className="card-section-title"),
-        html.Div(className="forum-box", children=[
-            html.Div(className="forum-created-box", children=[
+        html.Div(className="dashboard-aluno-forum-box", children=[
+            html.Div(className="dashboard-aluno-forum-item", children=[
                 DashIconify(icon="mdi:email-outline", width=36, color="white"),
                 html.Div("Criados", className="forum-label"),
                 html.Div(str(criados), className="forum-number")
             ]),
-            html.Div(className="forum-replied-box", children=[
+            html.Div(className="dashboard-aluno-forum-item dashboard-aluno-forum-item-respondido", children=[
                 DashIconify(icon="mdi:email-send-outline", width=36, color="white"),
                 html.Div("Respondidos", className="forum-label"),
                 html.Div(str(respondidos), className="forum-number")
@@ -213,10 +277,12 @@ def render_volume_interacao(contagem):
         "Livros": "mdi:book-open-page-variant",
         "Pastas": "mdi:folder-outline",
         "Quizzes": "mdi:clipboard-outline",
-        "Lições": "mdi:book-education-outline"
+        "Lições": "mdi:book-education-outline",
+        "Atividades Formativas": "mdi:clipboard-text-outline",  
+        "Conteúdos Multimédia": "mdi:video-box"  
     }
 
-    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple"]
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-pink", "bg-gray"]
 
     return html.Div(className="card card-volume", children=[
         html.H4("Volume de Interação", className="card-section-title"),
@@ -247,9 +313,9 @@ def render_progresso_global(progresso_pct):
             'steps': [{'range': [0, 100], 'color': "#dfeeee"}]
         }
     ))
-    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=160)
+    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=120)
     return html.Div(className="card card-gauge", children=[
-        html.H4("Progresso", className="card-section-title"),
+        html.H4("Progresso das Atividades", className="card-section-title"),
         html.Div(className="gauge-wrapper", children=[
             dcc.Graph(figure=fig, config={'displayModeBar': False})
         ])
@@ -273,5 +339,27 @@ def barra_personalizada(label, valor, cor_primaria):
         html.Div(className="barra-fundo", children=[
             html.Div(style={"width": f"{valor}%", "backgroundColor": cor_primaria}, className="barra-progresso"),
             html.Div(f"{valor}%", className="barra-texto")
+        ])
+    ])
+
+
+def render_topo_geral(userid, course_id):
+    nome, papel, curso = get_dashboard_top_info(userid, course_id)
+    ano_curso_atual = extrair_ano_letivo(curso) or ""
+    return html.Div(className="topo-dashboard", children=[
+        html.Div(className="linha-superior", children=[
+            html.Div(className="info-utilizador", children=[
+                DashIconify(
+                    icon="mdi:school" if papel == "ALUNO" else "mdi:teach",
+                    width=32,
+                    color="#2c3e50",
+                    className="avatar-icon"
+                ),
+                html.Span(f"[{papel}] {nome}", className="nome-utilizador")
+            ])
+        ]),
+        html.Div(className="barra-uc", children=[
+            html.Span(curso, className="nome-curso"),
+            html.Span(ano_curso_atual, className="ano-letivo")
         ])
     ])

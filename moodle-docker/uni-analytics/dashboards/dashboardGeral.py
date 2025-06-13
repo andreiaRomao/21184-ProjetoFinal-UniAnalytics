@@ -45,9 +45,9 @@ def classificar_aluno(grupo, notas):
     else:
         if soma >= 3.5:
             if global_ and global_ >= 5.5 and soma + global_ >= 9.5:
-                return "Global"
+                return "Efolio Global"
             elif recurso and recurso >= 5.5 and soma + recurso >= 9.5:
-                return "Recurso"
+                return "Efolio Recurso"
             else:
                 return "Reprovado"
         else:
@@ -93,7 +93,7 @@ def calcular_estatisticas_por_ano(completions, cursos):
         contagem = pd.Series(situacoes.values()).value_counts().to_dict()
         pie_por_ano[ano] = contagem
 
-        aprovados = sum(contagem.get(k, 0) for k in ["Global", "Exame", "Recurso", "Exame Recurso"])
+        aprovados = sum(contagem.get(k, 0) for k in ["Efolio Global", "Efolio Recurso", "Exame", "Exame Recurso"])
         reprovados = contagem.get("Reprovado", 0)
         linhas_por_ano[ano] = [aprovados, reprovados]
 
@@ -191,6 +191,7 @@ def layout(userid, course_id):
         ano_inicial = anos_disponiveis[-1] if anos_disponiveis else ""
 
         nome, papel, curso = get_dashboard_top_info(userid, course_id)
+        ano_curso_atual = extrair_ano_letivo(curso) or ""  # ← apenas para o badge visual
         dropdown_cursos = obter_opcoes_dropdown_cursos()
 
         return html.Div(className="dashboard-geral", children=[
@@ -218,11 +219,11 @@ def layout(userid, course_id):
                 ]),
                 html.Div(className="barra-uc", children=[
                     html.Span(curso, className="nome-curso"),
-                    html.Span(ano_inicial, className="ano-letivo")
+                    html.Span(ano_curso_atual, className="ano-letivo") 
                 ])
             ]),
 
-            html.H3("Dashboard Geral de Unidade Curricular", className="dashboard-geral-titulo" ),
+            html.H3("Informação Geral da Unidade Curricular", className="dashboard-geral-titulo" ),
 
             html.Div(className="linha-flex", children=[
                 html.Div(className="coluna-esquerda", children=[
@@ -321,7 +322,7 @@ def construir_figura_linhas(linhas_por_ano, ano_selecionado):
 def construir_figura_pie(pie_por_ano, ano):
     dados = pie_por_ano.get(ano, {})
 
-    ordem = ["Exame Recurso", "Global", "Exame", "Recurso"]
+    ordem = ["Efolio Global", "Efolio Recurso", "Exame", "Exame Recurso"]
     dados_ordenados = {k: dados[k] for k in ordem if k in dados}
 
     df = pd.DataFrame({
@@ -332,7 +333,7 @@ def construir_figura_pie(pie_por_ano, ano):
     fig = px.pie(df, names="Tipo", values="Percentagem", hole=0.45,
                  color_discrete_sequence=["#94e0e4", "#69b3dd", "#386c95", "#ffc658", "#f08080"],
                  category_orders={"Tipo": ordem}, height=280)
-    fig.update_traces(textinfo="label+percent")
+    fig.update_traces(textinfo="label+percent", textfont_size=9)
     fig.update_layout(
         height=220,
         margin=dict(t=20, b=20, l=20, r=20),
