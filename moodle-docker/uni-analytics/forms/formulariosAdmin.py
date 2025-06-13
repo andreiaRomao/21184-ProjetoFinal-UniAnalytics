@@ -77,6 +77,17 @@ def layout():
             html.Div(id="secao-lista-perguntas", style={"display": "none"}, children=[
                 html.H4("Perguntas Registadas", className="card-section-title"),
                 html.Div(id="lista-perguntas", className="pergunta-card")
+            ]),
+
+           # Botão para listar respostas
+            html.Div(className="form-group", children=[
+                html.Button("Listar Respostas Submetidas", id="listar-respostas-btn", className="btn")
+            ], style={"marginBottom": "20px"}),
+
+            # Área para apresentar as respostas
+            html.Div(id="secao-lista-respostas", style={"display": "none"}, children=[
+                html.H4("Respostas Submetidas", className="card-section-title"),
+                html.Div(id="lista-respostas", className="pergunta-card")
             ])
         ])
     ])
@@ -422,3 +433,43 @@ def register_callbacks(app):
         except Exception as e:
             logger.exception("[ADMIN] Erro ao carregar dados da pergunta")
             return f"Erro ao carregar dados: {str(e)}", dash.no_update
+
+    @app.callback(
+            Output("lista-respostas", "children"),
+            Output("secao-lista-respostas", "style"),
+            Input("listar-respostas-btn", "n_clicks"),
+            prevent_initial_call=True
+        )
+    def listar_respostas(n_clicks):
+       try:
+           conn = connect_to_uni_analytics_db()
+           cursor = conn.cursor()
+
+           query = """
+               SELECT 
+                    a.question_id,
+                    a.answer_id,
+                    a.item_id,
+                    e.name AS item_name,
+                    a.form_type
+                FROM forms_student_answers a
+                JOIN efolios e ON a.item_id = e.item_id
+                ORDER BY a.created_at DESC
+           """
+           cursor.execute(query)
+           rows = cursor.fetchall()
+           conn.close()
+
+           if not rows:
+               return html.Div("Nenhuma resposta submetida encontrada."), {"display": "block"}
+
+           lista_html = html.Ul([
+               html.Li(f"Pergunta ID {r[0]}, Resposta ID {r[1]}, Item ID {r[2]} — {r[3]} [{r[4]}]")
+               for r in rows
+           ])
+
+           return lista_html, {"display": "block"}
+
+       except Exception as e:
+           logger.exception("[ADMIN] Erro ao listar respostas submetidas")
+           return f"Erro ao carregar respostas: {str(e)}", {"display": "block"}

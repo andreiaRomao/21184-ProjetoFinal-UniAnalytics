@@ -8,6 +8,12 @@ from dash import html
 def get_layout(pathname, user_id, item_id):
     logger.debug(f"[Router] Pedido de layout para rota: {pathname} com item_id={item_id}")
 
+    # Se for admin, não valida item_id
+    if pathname == "/forms/formularioAdmin":
+        logger.info("A carregar layout: administração de formulários")
+        return formulariosAdmin.layout()
+
+    # Validação para pre e pos
     if item_id <= 0:
         logger.warning(f"[Router] item_id inválido: {item_id}")
         return html.Div("Item inválido.")
@@ -51,10 +57,6 @@ def get_layout(pathname, user_id, item_id):
             return html.Div("O formulário de pós-avaliação só está disponível na semana após o fim do e-fólio.")
         logger.info("A carregar layout: formulário de pós-avaliação")
         return formularioPos.layout(user_id, item_id)
-
-    elif pathname == "/forms/formularioAdmin":
-        logger.info("A carregar layout: administração de formulários")
-        return formulariosAdmin.layout()
 
     logger.warning(f"[Router] Rota não reconhecida: {pathname}")
     return None

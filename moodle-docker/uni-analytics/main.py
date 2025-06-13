@@ -1,7 +1,7 @@
 import dash
 from dash import html, dcc, Input, Output, State, ctx, no_update
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
-from forms import formularioMain  
+from forms import formularioMain, formularioPre, formularioPos  , formulariosAdmin
 from db.uniAnalytics import init_uni_analytics_db 
 from auth import login
 from flask import Flask, session
@@ -135,4 +135,7 @@ def display_page(pathname, search):
 if __name__ == '__main__':
     dashboardGeral.register_callbacks(app)
     login.register_callbacks(app)
+    formulariosAdmin.register_callbacks(app)
+    formularioPre.register_callbacks(app)
+    formularioPos.register_callbacks(app)
     app.run(debug=True, host="0.0.0.0", port=8050)
