@@ -35,16 +35,16 @@ from forms import formularioPre, formularioPos, formulariosAdmin
 from utils.logger import logger
 
 # Função que devolve o layout com base na rota atual
-def get_layout(pathname):
+def get_layout(pathname, user_id):
     logger.debug(f"[Router] Pedido de layout para rota: {pathname}")
     
     if pathname == "/forms/formularioPre":
         logger.info("A carregar layout: formulário de pré-avaliação")
-        return formularioPre.layout()
+        return formularioPre.layout(user_id)
     
     elif pathname == "/forms/formularioPos":
         logger.info("A carregar layout: formulário de pós-avaliação")
-        return formularioPos.layout()
+        return formularioPos.layout(user_id)
     
     elif pathname == "/forms/formularioAdmin":
         logger.info("A carregar layout: administração de formulários")

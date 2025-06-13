@@ -87,12 +87,7 @@ def register_callbacks(app):
         triggered_id = ctx.triggered_id
 
         def get_redirect_path(role):
-            if role == "aluno":
-                return "/dashboards/dashboardAluno"
-            elif role == "professor":
-                return "/dashboards/dashboardProfessor"
-            elif role == "admin":
-                return "/home"
+
             return "/home"
 
         if triggered_id == "login-button":

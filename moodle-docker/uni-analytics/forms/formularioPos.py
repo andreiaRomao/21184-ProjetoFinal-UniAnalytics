@@ -6,16 +6,17 @@ from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 
 # Layout da página de formulário de Pós-Avaliação
-def layout():
+def layout(user_id):
+    logger.info(f"[POS] Aluno com ID {user_id} acedeu ao formulário de pós-avaliação")
     return html.Div(className="dashboard-container", children=[
         html.Div(className="card", children=[
             dcc.Interval(id="init-load-pos", interval=1, n_intervals=0, max_intervals=1),
             html.H2("Pós-Avaliação", className="card-title"),
 
-            dcc.Store(id='etapa-pos', data=0),
-            dcc.Store(id='respostas-pos', data={}),
-            dcc.Store(id='perguntas-pos'),
-            dcc.Store(id="aluno-id", data=999),
+            dcc.Store(id='etapa-pos', data=0),          # Etapa atual (0 = introdução)
+            dcc.Store(id='respostas-pos', data={}),     # Respostas dadas até ao momento
+            dcc.Store(id='perguntas-pos'),              # Perguntas carregadas do banco de dados
+            dcc.Store(id="aluno-id", data=user_id),     # Valor dinâmico vindo da sessão
 
             html.Div(id='pergunta-area-pos', children="A carregar perguntas..."),
 
