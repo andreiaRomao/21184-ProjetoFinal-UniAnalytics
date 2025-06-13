@@ -1,6 +1,6 @@
 import dash
 from dash import html, dcc, Input, Output, State, ctx, no_update
-from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor
+from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor, dashboardPre, dashboardPos
 from forms import formularioMain, formularioPre, formularioPos  , formulariosAdmin
 from db.uniAnalytics import init_uni_analytics_db 
 from auth import login
@@ -95,15 +95,23 @@ def display_page(pathname, search):
             links.extend([
                 dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", style={"display": "block", "margin": "10px"})
+                dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
             ])
         elif user_role == "professor":
-            links.append(dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}))
+            links.append([
+                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
+            ])   
         elif user_role == "aluno":
             links.extend([
                 dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre?item_id=1", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos?item_id=1", style={"display": "block", "margin": "10px"})
+                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos?item_id=1", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})      
             ])
 
         return html.Div([
@@ -124,6 +132,16 @@ def display_page(pathname, search):
             return dashboardProfessor.layout(user_id, course_id)
         return html.Div("Acesso não autorizado.")
 
+    elif pathname == "/dashboards/dashboardPre":
+        if user_role in ["professor", "admin", "aluno"]:
+            return dashboardPre.layout()
+        return html.Div("Acesso não autorizado.")
+
+    elif pathname == "/dashboards/dashboardPos":
+        if user_role in ["professor", "admin", "aluno"]:
+            return dashboardPos.layout()
+        return html.Div("Acesso não autorizado.")
+
     elif pathname.startswith("/forms/"):
         if user_role in ["aluno" ,"admin"]:
             return formularioMain.get_layout(pathname, user_id, item_id) or html.Div("Formulário não encontrado.")
@@ -138,4 +156,6 @@ if __name__ == '__main__':
     formulariosAdmin.register_callbacks(app)
     formularioPre.register_callbacks(app)
     formularioPos.register_callbacks(app)
+    dashboardPre.register_callbacks(app)
+    dashboardPos.register_callbacks(app)
     app.run(debug=True, host="0.0.0.0", port=8050)
