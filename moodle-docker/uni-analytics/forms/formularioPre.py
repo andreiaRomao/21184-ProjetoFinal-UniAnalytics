@@ -6,8 +6,8 @@ from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 
 # Layout da página de formulário de Pré-Avaliação
-def layout(user_id):
-    logger.info(f"[PRE] Aluno com ID {user_id} acedeu ao formulário de pré-avaliação")
+def layout(user_id, item_id):
+    logger.info(f"[PRE] Aluno com ID {user_id} acedeu ao formulário de pré-avaliação para o item {item_id}")
     return html.Div(className="dashboard-container", children=[
         html.Div(className="card", children=[
             dcc.Interval(id="init-load-pre", interval=1, n_intervals=0, max_intervals=1),
@@ -18,6 +18,7 @@ def layout(user_id):
             dcc.Store(id='respostas-pre', data={}),         # Respostas dadas até ao momento
             dcc.Store(id='perguntas-pre'),                  # Perguntas carregadas da base de dados
             dcc.Store(id="aluno-id", data=user_id),         # Valor dinâmico vindo da sessão
+            dcc.Store(id="item-id", data=item_id),          # Valor dinâmico vindo da sessão
 
             # Área onde se apresenta a pergunta atual
             html.Div(id='pergunta-area-pre', children="A carregar perguntas..."),
@@ -29,7 +30,6 @@ def layout(user_id):
                 html.Button("Anterior", id="back-btn-pre", n_clicks=0, className="btn"),
                 html.Button("Seguinte", id="next-btn-pre", n_clicks=0, className="btn"),
                 html.Button("Submeter", id="submit-btn-pre", n_clicks=0, className="btn", style={"display": "none"}),
-                html.Button("Ver Resultados", id="ver-resultados-btn-pre", n_clicks=0, className="btn")
             ], style={
                 "display": "flex",
                 "gap": "20px",
@@ -40,8 +40,6 @@ def layout(user_id):
             # Mensagem após submissão
             html.Div(id="mensagem-final-pre", style={"marginTop": "20px", "fontWeight": "bold", "textAlign": "center"}),
 
-            # Resultados recentes da BD
-            html.Div(id="resultados-db-pre", style={"marginTop": "20px"})
         ])
     ])
 
@@ -184,58 +182,41 @@ def register_callbacks(app):
         Input("submit-btn-pre", "n_clicks"),
         State("respostas-pre", "data"),
         State("aluno-id", "data"),
+        State("item-id", "data"),
         prevent_initial_call=True
     )
-    def submeter(n_clicks, respostas, aluno_id):
+    def submeter(n_clicks, respostas, aluno_id, item_id):
         if not respostas:
             return "Por favor responde a todas as perguntas antes de submeter."
 
         try:
             conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
+
+            # Verificar se já existe submissão para este aluno e item_id
+            cursor.execute(
+                "SELECT 1 FROM forms_student_answers WHERE student_id = ? AND item_id = ? AND form_type = 'pre' LIMIT 1",
+                (aluno_id, item_id)
+            )
+            if cursor.fetchone():
+                conn.close()
+                return "Só é possível fazer uma submissão de formulário para este E-fólio."
+
+            # Inserir cada resposta
             for pergunta_id_str, answer_id in respostas.items():
                 query = """
-                    INSERT INTO forms_student_answers (student_id, question_id, answer_id)
-                    VALUES (?, ?, ?)
+                    INSERT INTO forms_student_answers (student_id, item_id, question_id, answer_id, form_type)
+                    VALUES (?, ?, ?, ?, ?)
                 """
-                params = (aluno_id, int(pergunta_id_str), int(answer_id))
+                params = (aluno_id, item_id, int(pergunta_id_str), int(answer_id), 'pre')
                 logger.debug(f"[PRE] Executar INSERT: {query.strip()} | Params: {params}")
                 cursor.execute(query, params)
+
             conn.commit()
             conn.close()
-            logger.info(f"[PRE] Submissão concluída para aluno_id={aluno_id}")
+            logger.info(f"[PRE] Submissão concluída para aluno_id={aluno_id}, item_id={item_id}")
             return "Obrigado! Respostas submetidas com sucesso."
+
         except Exception as e:
             logger.exception("[PRE] Erro ao guardar respostas")
             return f"Erro ao guardar: {e}"
-
-    # Mostra os últimos 10 registos na base de dados
-    @app.callback(
-        Output("resultados-db-pre", "children"),
-        Input("ver-resultados-btn-pre", "n_clicks"),
-        prevent_initial_call=True
-    )
-    def ver_resultados(n):
-        try:
-            conn = connect_to_uni_analytics_db()
-            cursor = conn.cursor()
-            query = """
-                SELECT q.question, r.answer, a.created_at
-                FROM forms_student_answers a
-                JOIN forms_questions q ON a.question_id = q.id
-                JOIN forms_answers r ON a.answer_id = r.id
-                WHERE q.form_type = 'pre'
-                ORDER BY a.created_at DESC
-                LIMIT 10
-            """
-            logger.debug(f"[PRE] Executar query: {query.strip()}")
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            conn.close()
-            logger.info(f"[PRE] Consultados {len(rows)} registos")
-            return html.Ul([
-                html.Li(f"{ts} - {pergunta} → {resposta}") for pergunta, resposta, ts in rows
-            ])
-        except Exception as e:
-            logger.exception("[PRE] Erro ao carregar resultados")
-            return f"Erro ao carregar resultados: {e}"

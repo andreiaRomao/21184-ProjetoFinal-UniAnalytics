@@ -41,8 +41,10 @@ def init_uni_analytics_db():
         CREATE TABLE IF NOT EXISTS forms_student_answers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id INTEGER NOT NULL,
+            item_id INTEGER NOT NULL,
             question_id INTEGER NOT NULL,
             answer_id INTEGER NOT NULL,
+            form_type TEXT NOT NULL, 
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (question_id) REFERENCES forms_questions(id),
             FOREIGN KEY (answer_id) REFERENCES forms_answers(id)
@@ -100,6 +102,16 @@ def init_uni_analytics_db():
             role TEXT NOT NULL CHECK(role IN ('aluno', 'professor', 'admin')),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Tabela com os e-fólios importados do Moodle
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS efolios (
+            item_id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            start_date DATETIME NOT NULL,
+            end_date DATETIME NOT NULL
         );
     """)
 

@@ -62,3 +62,27 @@ def fetch_all_forum_posts():
         print("Erro ao obter dados dos fóruns:", e)
         conn.close()
         return []
+
+def fetch_all_efolios():
+    from db.moodleConnection import connect_to_moodle_db
+    conn = connect_to_moodle_db()
+    query = """
+        SELECT
+            gi.id AS item_id,
+            a.name,
+            FROM_UNIXTIME(a.allowsubmissionsfromdate) AS start_date,
+            FROM_UNIXTIME(a.duedate) AS end_date
+        FROM mdl_assign a
+        JOIN mdl_grade_items gi ON gi.iteminstance = a.id
+        WHERE gi.itemmodule = 'assign' AND a.name LIKE '%folio%';
+    """
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except Exception as e:
+        print("Erro ao obter dados dos e-fólios:", e)
+        conn.close()
+        return []

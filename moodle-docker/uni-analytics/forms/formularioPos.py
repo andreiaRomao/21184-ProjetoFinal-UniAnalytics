@@ -6,8 +6,8 @@ from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 
 # Layout da página de formulário de Pós-Avaliação
-def layout(user_id):
-    logger.info(f"[POS] Aluno com ID {user_id} acedeu ao formulário de pós-avaliação")
+def layout(user_id, item_id):
+    logger.info(f"[POS] Aluno com ID {user_id} acedeu ao formulário de pós-avaliação para o item {item_id}")
     return html.Div(className="dashboard-container", children=[
         html.Div(className="card", children=[
             dcc.Interval(id="init-load-pos", interval=1, n_intervals=0, max_intervals=1),
@@ -17,6 +17,7 @@ def layout(user_id):
             dcc.Store(id='respostas-pos', data={}),     # Respostas dadas até ao momento
             dcc.Store(id='perguntas-pos'),              # Perguntas carregadas do banco de dados
             dcc.Store(id="aluno-id", data=user_id),     # Valor dinâmico vindo da sessão
+            dcc.Store(id="item-id", data=item_id),      # Valor dinâmico vindo da sessão
 
             html.Div(id='pergunta-area-pos', children="A carregar perguntas..."),
 
@@ -25,8 +26,7 @@ def layout(user_id):
             html.Div([
                 html.Button("Anterior", id="back-btn-pos", n_clicks=0, className="btn"),
                 html.Button("Seguinte", id="next-btn-pos", n_clicks=0, className="btn"),
-                html.Button("Submeter", id="submit-btn-pos", n_clicks=0, className="btn", style={"display": "none"}),
-                html.Button("Ver Resultados", id="ver-resultados-btn-pos", n_clicks=0, className="btn")
+                html.Button("Submeter", id="submit-btn-pos", n_clicks=0, className="btn", style={"display": "none"})
             ], style={
                 "display": "flex",
                 "gap": "20px",
@@ -36,7 +36,6 @@ def layout(user_id):
 
             html.Div(id="mensagem-final-pos", style={"marginTop": "20px", "fontWeight": "bold", "textAlign": "center"}),
 
-            html.Div(id="resultados-db-pos", style={"marginTop": "20px"})
         ])
     ])
 
@@ -160,54 +159,40 @@ def register_callbacks(app):
         Input("submit-btn-pos", "n_clicks"),
         State("respostas-pos", "data"),
         State("aluno-id", "data"),
+         State("item-id", "data"),
         prevent_initial_call=True
     )
-    def submeter(n_clicks, respostas, aluno_id):
+    def submeter(n_clicks, respostas, aluno_id, item_id):
         if not respostas:
             return "Por favor responde a todas as perguntas antes de submeter."
 
         try:
             conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()
+
+            # Verificar se já existe submissão para este aluno e item_id
+            cursor.execute(
+                    "SELECT 1 FROM forms_student_answers WHERE student_id = ? AND item_id = ? AND form_type = 'pos' LIMIT 1",
+                (aluno_id, item_id)
+            )
+            if cursor.fetchone():
+                conn.close()
+                return "Só é possível fazer uma submissão de formulário para este E-fólio."
+
+            # Inserir cada resposta
             for pergunta_id_str, answer_id in respostas.items():
                 query = """
-                    INSERT INTO forms_student_answers (student_id, question_id, answer_id)
-                    VALUES (?, ?, ?)
+                    INSERT INTO forms_student_answers (student_id, item_id, question_id, answer_id, form_type)
+                    VALUES (?, ?, ?, ?, ?)
                 """
-                params = (aluno_id, int(pergunta_id_str), int(answer_id))
+                params = (aluno_id, item_id, int(pergunta_id_str), int(answer_id), 'pos')
                 cursor.execute(query, params)
+
             conn.commit()
             conn.close()
-            logger.info(f"[POS] Submissão concluída para aluno_id={aluno_id}")
+            logger.info(f"[PRE] Submissão concluída para aluno_id={aluno_id}, item_id={item_id}")
             return "Obrigado! Respostas submetidas com sucesso."
-        except Exception as e:
-            logger.exception("[POS] Erro ao guardar respostas")
-            return f"Erro ao guardar: {e}"
 
-    @app.callback(
-        Output("resultados-db-pos", "children"),
-        Input("ver-resultados-btn-pos", "n_clicks"),
-        prevent_initial_call=True
-    )
-    def ver_resultados(n):
-        try:
-            conn = connect_to_uni_analytics_db()
-            cursor = conn.cursor()
-            query = """
-                SELECT q.question, r.answer, a.created_at
-                FROM forms_student_answers a
-                JOIN forms_questions q ON a.question_id = q.id
-                JOIN forms_answers r ON a.answer_id = r.id
-                WHERE q.form_type = 'pos'
-                ORDER BY a.created_at DESC
-                LIMIT 10
-            """
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            conn.close()
-            return html.Ul([
-                html.Li(f"{ts} - {pergunta} → {resposta}") for pergunta, resposta, ts in rows
-            ])
         except Exception as e:
-            logger.exception("[POS] Erro ao carregar resultados")
-            return f"Erro ao carregar resultados: {e}"
+            logger.exception("[PRE] Erro ao guardar respostas")
+            return f"Erro ao guardar: {e}"

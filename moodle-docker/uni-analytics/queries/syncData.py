@@ -2,7 +2,7 @@ from datetime import datetime
 from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
 from queries.queriesAluno import fetch_all_interacoes, fetch_all_completions
-from queries.queriesGeral import fetch_all_forum_posts
+from queries.queriesGeral import fetch_all_forum_posts, fetch_all_efolios
 
 # Função para sincronizar os dados dos fóruns
 def sync_forum_data():
@@ -145,8 +145,48 @@ def sync_grade_progress_data():
         logger.exception(f"[SYNC] Erro ao sincronizar dados de grade_progress: {str(e)}")
 
 
+def sync_efolios_data():
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        logger.debug("[SYNC] A obter e-fólios a partir do Moodle...")
+        dados = fetch_all_efolios()
+
+        conn_local = connect_to_uni_analytics_db()
+        cursor_local = conn_local.cursor()
+        cursor_local.execute("DELETE FROM efolios")
+
+        inseridos = 0
+        ignorados = 0
+
+        for row in dados:
+            try:
+                logger.debug(f"[SYNC][EFOLIOS] Inserir: item_id={row['item_id']}, name={row['name']}, start={row['start_date']}, end={row['end_date']}")
+                cursor_local.execute("""
+                    INSERT INTO efolios (
+                        item_id, name, start_date, end_date
+                    )
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    row["item_id"],
+                    row["name"],
+                    row["start_date"],
+                    row["end_date"]
+                ))
+                inseridos += 1
+            except Exception as item_error:
+                ignorados += 1
+                logger.warning(f"[SYNC][EFOLIOS] Registo ignorado por erro: {str(item_error)} | Dados: {row}")
+
+        conn_local.commit()
+        conn_local.close()
+        logger.info(f"[SYNC] E-fólios sincronizados com {inseridos} registos. Ignorados: {ignorados}.")
+    except Exception as e:
+        logger.exception(f"[SYNC] Erro ao sincronizar dados de e-fólios: {str(e)}")
+
 # Ponto de entrada principal para o scheduler
 def executar_todos_os_syncs():
     sync_forum_data()
     sync_interacao_data()
     sync_grade_progress_data()
+    sync_efolios_data()

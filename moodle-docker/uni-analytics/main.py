@@ -5,6 +5,7 @@ from forms import formularioMain
 from db.uniAnalytics import init_uni_analytics_db 
 from auth import login
 from flask import Flask, session
+from urllib.parse import urlparse, parse_qs 
 import os
 import secrets
 
@@ -65,9 +66,10 @@ def logout_user(n_clicks):
 # Callback principal de navegação
 @app.callback(
     Output('page-content', 'children'),
-    Input('url', 'pathname')
+    Input('url', 'pathname'),
+    State('url', 'search') 
 )
-def display_page(pathname):
+def display_page(pathname, search):
     print("Path recebido:", pathname)
 
     user_id = session.get("user_id")
@@ -77,6 +79,10 @@ def display_page(pathname):
         return login.layout()
 
     course_id = 2  # Fixo por agora
+
+    # Extrair item_id da query string (se existir)
+    query_params = parse_qs(search[1:]) if search else {}
+    item_id = int(query_params.get("item_id", [0])[0])  # Usa 0 por omissão
 
     if pathname in ["/", "/home"]:
         links = []
@@ -96,8 +102,8 @@ def display_page(pathname):
         elif user_role == "aluno":
             links.extend([
                 dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos", style={"display": "block", "margin": "10px"})
+                dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre?item_id=1", style={"display": "block", "margin": "10px"}),
+                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos?item_id=1", style={"display": "block", "margin": "10px"})
             ])
 
         return html.Div([
@@ -120,15 +126,13 @@ def display_page(pathname):
 
     elif pathname.startswith("/forms/"):
         if user_role in ["aluno" ,"admin"]:
-            form_layout = formularioMain.get_layout(pathname, user_id)
-            return form_layout if form_layout else html.Div("Formulário não encontrado.")
+            return formularioMain.get_layout(pathname, user_id, item_id) or html.Div("Formulário não encontrado.")
         return html.Div("Acesso não autorizado.")
 
     return html.Div("Página não encontrada.")
 
 # Arranque da aplicação
 if __name__ == '__main__':
-    formularioMain.register_callbacks(app)
     dashboardGeral.register_callbacks(app)
     login.register_callbacks(app)
     app.run(debug=True, host="0.0.0.0", port=8050)
