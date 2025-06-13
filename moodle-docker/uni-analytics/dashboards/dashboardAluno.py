@@ -62,7 +62,7 @@ def obter_assigns_validos(dados, course_id, grupo_aluno):
             grupo = (d.get("groupname") or "").lower()
 
             if grupo_aluno and grupo_aluno in grupo:
-                if "aval" in grupo_aluno and any(e in nome for e in ["efolio", "global"]):
+                if "aval" in grupo_aluno and "efolio" in nome and "global" not in nome:
                     assigns_validos.append(d["coursemodule_id"])
                 elif "exam" in grupo_aluno and "exame" in nome:
                     assigns_validos.append(d["coursemodule_id"])
@@ -187,10 +187,16 @@ def layout(aluno_id, course_id):
         grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)
         assigns_validos = obter_assigns_validos(dados_completions, course_id, grupo_aluno)
 
-        avaliacao = calcular_pct_completions(
-            dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
-        )
-        
+        # Se for grupo de exame, não mostrar progresso de avaliação
+        mostrar_avaliacao = not grupo_aluno or "exam" not in grupo_aluno
+
+        if mostrar_avaliacao:
+            avaliacao = calcular_pct_completions(
+                dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
+            )
+        else:
+            avaliacao = 0  # Não será usado, mas evita erro
+
         progresso_global = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['page', 'resource', 'quiz', 'lesson'], grupo_aluno=grupo_aluno
         )
@@ -206,8 +212,14 @@ def layout(aluno_id, course_id):
         traceback.print_exc()
         return html.Div("Erro ao ligar à base de dados.")
 
+    # Bloco da coluna da esquerda (progresso avaliação + desempenho)
+    coluna_esquerda = []
+    if mostrar_avaliacao:
+        coluna_esquerda.append(render_progresso_atividades(avaliacao))
+    coluna_esquerda.append(render_desempenho(desempenho))
+
     return html.Div(children=[
-        render_topo_geral(aluno_id, course_id),  # Barra superior com informações do aluno
+        render_topo_geral(aluno_id, course_id),
 
         html.Div(children=[
             html.H2("Aluno - Informação Geral do aluno", style={
@@ -228,10 +240,7 @@ def layout(aluno_id, course_id):
         ]),
 
         html.Div(className="dashboard-aluno-3colunas", children=[
-            html.Div(className="dashboard-aluno-coluna", children=[
-                render_progresso_atividades(avaliacao),
-                render_desempenho(desempenho)
-            ]),
+            html.Div(className="dashboard-aluno-coluna", children=coluna_esquerda),
             html.Div(className="dashboard-aluno-coluna", children=[
                 render_volume_interacao(interacoes)
             ]),
@@ -278,11 +287,10 @@ def render_volume_interacao(contagem):
         "Pastas": "mdi:folder-outline",
         "Quizzes": "mdi:clipboard-outline",
         "Lições": "mdi:book-education-outline",
-        "Atividades Formativas": "mdi:clipboard-text-outline",  
         "Conteúdos Multimédia": "mdi:video-box"  
     }
 
-    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-pink", "bg-gray"]
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-pink"]
 
     return html.Div(className="card card-volume", children=[
         html.H4("Volume de Interação", className="card-section-title"),
@@ -326,12 +334,16 @@ def render_desempenho(nivel):
         classe_cor = "indicador-critico"
     elif nivel == "Em Risco":
         classe_cor = "indicador-risco"
-    else:
+    elif nivel == "Expectável":
         classe_cor = "indicador-expectavel"
+    else:
+        classe_cor = "indicador-neutro"  # ← Para "Não Aplicável"
+    
     return html.Div(className="card card-desempenho", children=[
         html.H4("Desempenho", className="card-section-title"),
         html.Div(nivel, className=f"desempenho-indicador {classe_cor}")
     ])
+
 
 def barra_personalizada(label, valor, cor_primaria):
     return html.Div(className="barra-container", children=[
