@@ -58,11 +58,9 @@ def classificar_aluno(grupo, notas):
 # =========================
 
 def calcular_estatisticas_por_ano(completions, cursos):
-    # Prepara dados
     completions['itemname'] = completions['itemname'].apply(normalizar_itemname)
     cursos['ano_letivo'] = cursos['course_name'].apply(extrair_ano_letivo)
 
-    # Junta ambos
     df = completions.merge(
         cursos[['userid', 'courseid', 'course_name', 'ano_letivo']],
         left_on=['userid', 'course_id'],
@@ -70,7 +68,6 @@ def calcular_estatisticas_por_ano(completions, cursos):
         how='left'
     )
 
-    # Filtra anos válidos (exclui ano atual)
     anos = sorted(df['ano_letivo'].dropna().unique())
     if len(anos) > 0:
         ano_atual = anos[-1]
@@ -78,6 +75,13 @@ def calcular_estatisticas_por_ano(completions, cursos):
 
     pie_por_ano = {}
     linhas_por_ano = {}
+    inscritos_por_ano = (
+        df[['userid', 'ano_letivo']]
+        .drop_duplicates()
+        .groupby('ano_letivo')['userid']
+        .nunique()
+        .to_dict()
+    )
 
     for ano in anos:
         df_ano = df[df['ano_letivo'] == ano]
@@ -97,7 +101,11 @@ def calcular_estatisticas_por_ano(completions, cursos):
         reprovados = contagem.get("Reprovado", 0)
         linhas_por_ano[ano] = [aprovados, reprovados]
 
-    return linhas_por_ano, pie_por_ano
+    return linhas_por_ano, pie_por_ano, inscritos_por_ano
+
+# =========================
+# Callback de atualização
+# =========================
 
 # =========================
 # Callback de atualização
@@ -107,13 +115,21 @@ def register_callbacks(app):
     @app.callback(
         Output("grafico_linhas", "figure"),
         Output("grafico_pie", "figure"),
+        Output("grafico_linhas_inscritos", "figure"),  # ← corrigido aqui
         Input("dropdown_ano", "value"),
         State("store_dados_grafico", "data")
     )
     def atualizar_graficos(ano, store_data):
         linhas = store_data.get("linhas", {})
         pie = store_data.get("pie", {})
-        return construir_figura_linhas(linhas, ano), construir_figura_pie(pie, ano)
+        inscritos = store_data.get("inscritos", {})
+
+        return (
+            construir_figura_linhas(linhas, ano),
+            construir_figura_pie(pie, ano),
+            construir_figura_linhas_inscritos(inscritos, ano)
+        )
+
 
 # =========================
 # Função auxiliar: Info topo do dashboard
@@ -179,23 +195,24 @@ def layout(userid, course_id):
     try:
         dados_completions = pd.DataFrame(qa.fetch_all_completions())
         dados_cursos = pd.DataFrame(qg.fetch_user_course_data())
-        linhas_por_ano, pie_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
+        linhas_por_ano, pie_por_ano, inscritos_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
 
-        # Serializa para guardar no Store
         store_data = {
             "linhas": linhas_por_ano,
-            "pie": pie_por_ano
+            "pie": pie_por_ano,
+            "inscritos": inscritos_por_ano
         }
 
         anos_disponiveis = sorted(pie_por_ano.keys())
         ano_inicial = anos_disponiveis[-1] if anos_disponiveis else ""
 
         nome, papel, curso = get_dashboard_top_info(userid, course_id)
-        ano_curso_atual = extrair_ano_letivo(curso) or ""  # ← apenas para o badge visual
+        ano_curso_atual = extrair_ano_letivo(curso) or ""
         dropdown_cursos = obter_opcoes_dropdown_cursos()
 
         return html.Div(className="dashboard-geral", children=[
-            dcc.Store(id="store_dados_grafico", data=store_data),  # Guarda os dados para os gráficos
+            dcc.Store(id="store_dados_grafico", data=store_data),
+
             html.Div(className="topo-dashboard", children=[
                 html.Div(className="linha-superior", children=[
                     html.Div(className="info-utilizador", children=[
@@ -207,69 +224,67 @@ def layout(userid, course_id):
                         ),
                         html.Span(f"[{papel}] {nome}", className="nome-utilizador")
                     ]),
-                    html.Div(className="dropdown-curso", style={"display": "none"}, children=[  # <- escondido para já
+                    html.Div(className="dropdown-curso", children=[
                         dcc.Dropdown(
                             id="dropdown_uc",
                             options=dropdown_cursos,
                             value=course_id,
                             clearable=False,
-                            className="dropdown-uc-selector"
+                            className="dropdown-uc-selector dashboard-geral-oculto"  
                         )
                     ])
                 ]),
                 html.Div(className="barra-uc", children=[
                     html.Span(curso, className="nome-curso"),
-                    html.Span(ano_curso_atual, className="ano-letivo") 
+                    html.Span(ano_curso_atual, className="ano-letivo")
                 ])
             ]),
 
-            html.H3("Informação Geral da Unidade Curricular", className="dashboard-geral-titulo" ),
+            html.H3("Informação Geral da Unidade Curricular", className="dashboard-geral-titulo"),
 
             html.Div(className="linha-flex", children=[
                 html.Div(className="coluna-esquerda", children=[
                     html.Div(className="card bg-verde-suave", children=[
-                        html.Div(children=[
-                            html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="card-section-title", style={"textAlign": "left"})
-                        ]),
-                        html.Div(style={
-                            "display": "flex",
-                            "flexDirection": "column",
-                            "justifyContent": "flex-start",
-                            "alignItems": "center",
-                            "flex": "1"
-                        }, children=[
-                            dcc.Graph(
-                                id="grafico_linhas",
-                                figure=construir_figura_linhas(linhas_por_ano, ano_inicial),
-                                config={"displayModeBar": False},
-                                style={"width": "100%","marginBottom": "20px"}
-                            )
-                        ])
+                        html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="card-section-title"),
+                        dcc.Graph(
+                            id="grafico_linhas",
+                            figure=construir_figura_linhas(linhas_por_ano, ano_inicial),
+                            config={"displayModeBar": False},
+                            className="dashboard-geral-grafico"
+                        )
                     ])
                 ]),
                 html.Div(className="coluna-direita", children=[
                     html.Div(className="card bg-verde-suave", children=[
-                        html.Div(style={"display": "flex", "justifyContent": "space-between", "alignItems": "center",
-                                        "minHeight": "36px"}, children=[
+                        html.Div(className="dashboard-geral-dropdown-barra", children=[
                             html.H4("Taxa de Aprovação por tipo de avaliação", className="card-section-title"),
                             dcc.Dropdown(
                                 id="dropdown_ano",
                                 options=[{"label": ano, "value": ano} for ano in pie_por_ano.keys()],
                                 value=ano_inicial,
                                 clearable=False,
-                                style={"width": "130px", "fontSize": "13px", "marginTop": "0px"}
+                                className="dropdown-uc-selector"
                             )
                         ]),
-                        html.Div(style={"display": "flex", "flexDirection": "column", "alignItems": "center", "flex": "1"},
-                                 children=[
-                                     dcc.Graph(
-                                         id="grafico_pie",
-                                         figure=construir_figura_pie(pie_por_ano, ano_inicial),
-                                         config={"displayModeBar": False},
-                                         style={"width": "100%", "marginBottom": "20px" }
-                                     )
-                                 ])
+                        dcc.Graph(
+                            id="grafico_pie",
+                            figure=construir_figura_pie(pie_por_ano, ano_inicial),
+                            config={"displayModeBar": False},
+                            className="dashboard-geral-grafico"
+                        )
                     ])
+                ])
+            ]),
+
+            html.Div(className="dashboard-geral-grafico-inscritos-wrapper", children=[
+                html.Div(className="card bg-verde-suave", children=[
+                    html.H4("Evolução do número de inscritos por ano letivo", className="card-section-title"),
+                    dcc.Graph(
+                        id="grafico_linhas_inscritos",
+                        figure=construir_figura_linhas_inscritos(inscritos_por_ano, ano_inicial),
+                        config={"displayModeBar": False},
+                        className="dashboard-geral-grafico"
+                    )
                 ])
             ])
         ])
@@ -283,26 +298,27 @@ def layout(userid, course_id):
 # =========================
 
 def construir_figura_linhas(linhas_por_ano, ano_selecionado):
-    # Extrai o ano base (ex: "2022/2023" → 2022)
     ano_final = int(ano_selecionado.split("/")[0])
     anos_eixo = list(range(ano_final - 4, ano_final + 1))
 
     df = pd.DataFrame(columns=["Ano", "Situação", "Total"])
+    anos_formatados = []  
 
     for ano in anos_eixo:
         str_ano = f"{ano}/{ano+1}"
-        aprov, repro = linhas_por_ano.get(str_ano, [0, 0])  # ← usa [0, 0] se não existir
+        aprov, repro = linhas_por_ano.get(str_ano, [0, 0])
         df = pd.concat([
             df,
             pd.DataFrame({
-                "Ano": [ano, ano],
+                "Ano": [str_ano, str_ano],
                 "Situação": ["Aprovados", "Reprovados"],
                 "Total": [aprov, repro]
             })
         ])
+        anos_formatados.append(str_ano)
 
     fig = px.line(df, x="Ano", y="Total", color="Situação", markers=True,
-                  category_orders={"Ano": anos_eixo},
+                  category_orders={"Ano": anos_formatados},
                   color_discrete_map={"Aprovados": "#80cfa9", "Reprovados": "#5bb0f6"},
                   height=280)
 
@@ -313,11 +329,9 @@ def construir_figura_linhas(linhas_por_ano, ano_selecionado):
         plot_bgcolor="#f4faf4",
         font=dict(color="#2c3e50"),
         showlegend=True,
-        xaxis=dict(tickmode="array", tickvals=anos_eixo)
+        xaxis=dict(tickmode="array", tickvals=anos_formatados)
     )
     return fig
-
-
 
 def construir_figura_pie(pie_por_ano, ano):
     dados = pie_por_ano.get(ano, {})
@@ -349,5 +363,32 @@ def construir_figura_pie(pie_por_ano, ano):
             itemwidth=40,
             tracegroupgap=0
         )
+    )
+    return fig
+
+def construir_figura_linhas_inscritos(dados_inscritos, ano_base):
+    ano_final = int(ano_base.split("/")[0])
+    anos_eixo = list(range(ano_final - 4, ano_final + 1))
+    anos_letivos = [f"{ano}/{ano + 1}" for ano in anos_eixo]
+
+    totais = [dados_inscritos.get(ano, 0) for ano in anos_letivos]
+    df = pd.DataFrame({
+        "Ano": anos_letivos,
+        "Inscritos": totais
+    })
+
+    fig = px.line(df, x="Ano", y="Inscritos", markers=True,
+                  category_orders={"Ano": anos_letivos},
+                  color_discrete_sequence=["#f4b642"],
+                  height=280)
+
+    fig.update_layout(
+        height=220,
+        margin=dict(l=10, r=10, t=20, b=30),
+        paper_bgcolor="#f4faf4",
+        plot_bgcolor="#f4faf4",
+        font=dict(color="#2c3e50"),
+        showlegend=False,
+        xaxis=dict(tickmode="array", tickvals=anos_letivos)
     )
     return fig

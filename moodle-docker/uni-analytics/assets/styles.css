@@ -828,6 +828,39 @@ textarea::placeholder {
   background-color: #f4faf4;
 }
 
+.dashboard-geral-inscritos-grafico {
+  margin-top: 16px;
+  padding-top: 8px;
+}
+
+.dashboard-geral-grafico {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.dashboard-geral-dropdown-barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 36px;
+}
+
+.dashboard-geral-grafico-inscritos-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;  /* 30px de margem superior */
+  margin-bottom: 20px;
+}
+
+.dashboard-geral-grafico-inscritos-wrapper .card {
+  max-width: 600px;
+  width: 100%;
+}
+
+.dashboard-geral-oculto {
+  display: none;
+}
+
 /* ===============================
    GRELHA DE TOPO DO DASHBOARD
    =============================== */
