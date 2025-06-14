@@ -43,6 +43,7 @@ body {
 /* ===============================
    GRID DO DASHBOARD DO ALUNO
    =============================== */
+   /* Está a ser usado? */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 3fr 1fr;
@@ -67,6 +68,7 @@ body {
   flex-wrap: nowrap;
 }
 
+   /* Está a ser usado? */
 .coluna-aluno {
   display: flex;
   flex-direction: column;
@@ -82,6 +84,7 @@ body {
   min-width: 0;
 }
 
+  /* Está a ser usado? */
 .dashboard-aluno-card {
   height: fit-content;
   min-height: 160px;
@@ -142,6 +145,7 @@ body {
     max-width: 100%;
 }
 
+ /* Está a ser usado? */
 .dashboard-aluno-coluna-titulo {
   font-size: 18px;
   font-weight: bold;
@@ -185,6 +189,7 @@ body {
 }
 
 /* Coluna da esquerda (progresso, mensagens, interação) */
+ /* Está a ser usado? */
 .dashboard-grid .coluna-esquerda {
     display: flex;
     flex-direction: row;
@@ -194,11 +199,13 @@ body {
     grid-row: 1;
 }
 
+ /* Está a ser usado? */
 .dashboard-grid .coluna-esquerda > .card {
     flex: 1;
 }
 
 /* Coluna da direita (medidor + desempenho) */
+ /* Está a ser usado? */
 .coluna-direita {
     display: flex;
     flex-direction: column;
@@ -297,7 +304,7 @@ body {
     box-sizing: border-box;
 }
 
-/* Não sei se não vai ser apagado */
+ /* Está a ser usado? */
 .forum-box {
     width: 100%;
     display: flex;
@@ -306,6 +313,7 @@ body {
     margin-top: 8px;
 }
 
+ /* Está a ser usado? */
 .forum-created-box,
 .forum-replied-box {
     background-color: #7cc3ac;
@@ -317,11 +325,12 @@ body {
     flex-direction: column;
     align-items: center;
 }
-
+/* Está a ser usado? */
 .forum-replied-box {
     background-color: #a4dfc1;
 }
 
+/* Está a ser usado? */
 .forum-icon {
     width: 36px;
     margin-bottom: 10px;
@@ -413,6 +422,7 @@ body {
 /* ===============================
    MEDIDOR DE DESEMPENHO GLOBAL
    =============================== */
+   /* Está a ser usado? */
 .card-gauge {
   width: 100%;
   max-width: 100%;        
@@ -594,6 +604,7 @@ textarea::placeholder {
 /* ===============================
    GRELHA DE BLOCOS DO FÓRUM (PROFESSOR)
    =============================== */
+/* Está a ser usado? */
 .forum-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -603,6 +614,7 @@ textarea::placeholder {
 }
 
 /* Ajustes apenas para o dashboard do professor */
+/* Está a ser usado? */
 .dashboard-professor {
   display: grid;
   grid-template-columns: 2fr 1fr; 
@@ -615,6 +627,149 @@ textarea::placeholder {
   margin-top: 0px;
 }
 
+.dashboard-professor-card-forum {
+  padding: 20px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: fit-content;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+
+/* Bloco de acessos no dashboard do professor */
+.dashboard-professor-card-acessos {
+  padding: 20px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: fit-content;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-professor-card-title {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.dashboard-professor-acessos-box {
+  display: flex;
+  flex-direction: column; /* ← agora em coluna vertical */
+  gap: 14px;
+  width: 100%;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+
+.dashboard-professor-acesso-item {
+  flex: 1;
+  background-color: #7cc3ac;
+  border-radius: 12px;
+  padding: 12px 10px;
+  color: white;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-professor-acesso-item-claro {
+  background-color: #a4dfc1;
+}
+
+.dashboard-professor-acesso-label {
+  font-size: 14px;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.dashboard-professor-acesso-numero {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+
+.dashboard-professor-forum-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+
+.dashboard-professor-forum-item {
+  flex: 1;
+  background-color: #7cc3ac;
+  border-radius: 12px;
+  padding: 12px 10px;
+  color: white;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-professor-forum-item-criados {
+  background-color: #7cc3ac;  /* verde principal */
+}
+
+.dashboard-professor-forum-item-respondidos {
+  background-color: #a4dfc1;  /* verde claro */
+}
+
+.dashboard-professor-forum-item-velocidade {
+  background-color: #bce9d9;   /* verde mais claro (novo) */
+}
+
+.dashboard-professor-forum-label {
+  font-size: 14px;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.dashboard-professor-forum-numero {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.dashboard-professor-linha3colunas {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 30px 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f4faf4;
+  box-sizing: border-box;
+}
+
+.dashboard-professor-coluna {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Está a ser usado? */
 .dashboard-professor .coluna-esquerda,
 .dashboard-professor .coluna-direita {
   flex: 1;
@@ -622,18 +777,21 @@ textarea::placeholder {
   flex-direction: column;
 }
 
+/* Está a ser usado? */
 .dashboard-professor .coluna-esquerda > .card {
   flex: none;
   display: flex;
   flex-direction: column;
 }
 
+/* Está a ser usado? */
 .dashboard-professor .coluna-direita > .card {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
+/* Está a ser usado? */
 .dashboard-professor .card-forum {
   flex: 1;
   display: flex;
@@ -711,6 +869,7 @@ textarea::placeholder {
   background-color: #f4faf4;
 }
 
+/* Está a ser usado? */
 .card-bloco-altura-maior {
   min-height: 500px; 
   max-width: 800px;  
@@ -828,6 +987,7 @@ textarea::placeholder {
   background-color: #f4faf4;
 }
 
+/* Está a ser usado? */
 .dashboard-geral-inscritos-grafico {
   margin-top: 16px;
   padding-top: 8px;
@@ -899,6 +1059,7 @@ textarea::placeholder {
 }
 
 /* LINHA INFERIOR: barra com curso + ano letivo */
+/* Está a ser usado? */
 .linha-inferior {
   padding: 0;
   margin: 0;
@@ -945,12 +1106,14 @@ textarea::placeholder {
   padding: 6px;
 }
 
+/* Está a ser usado? */
 .grupo-direita-barra {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* Está a ser usado? */
 .barra-uc-wrapper {
   max-width: 1000px;
   margin: 0 auto;

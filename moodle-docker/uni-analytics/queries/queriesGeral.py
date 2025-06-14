@@ -10,13 +10,17 @@ def fetch_user_course_data():
           CONCAT(u.firstname, ' ', u.lastname) AS name,
           r.shortname AS role,
           c.id AS courseid,
-          c.fullname AS course_name
+          c.fullname AS course_name,
+          MAX(g.name) AS groupname
         FROM mdl_user u
         JOIN mdl_role_assignments ra ON ra.userid = u.id
-        JOIN mdl_context ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50 
+        JOIN mdl_context ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50  -- 50 = nível de curso
         JOIN mdl_course c ON c.id = ctx.instanceid
         JOIN mdl_role r ON r.id = ra.roleid
-        ORDER BY courseid, role, name;        
+        LEFT JOIN mdl_groups_members gm ON gm.userid = u.id
+        LEFT JOIN mdl_groups g ON g.id = gm.groupid AND g.courseid = c.id
+        GROUP BY u.id, u.email, name, r.shortname, c.id, c.fullname
+        ORDER BY courseid, role, name;              
     """
     cursor = conn.cursor()
     cursor.execute(query)

@@ -122,7 +122,7 @@ def contar_respostas(dados, aluno_id, course_id):
 def contar_interacoes_aluno(dados, aluno_id, course_id):
     tipos = [
         'Ficheiros', 'Páginas', 'Links', 'Livros', 'Pastas',
-        'Quizzes', 'Lições', 'Atividades Formativas', 'Conteúdos Multimédia'
+        'Quizzes', 'Lições', 'Conteúdos Multimédia'
     ]
     contagem = {tipo: 0 for tipo in tipos}
 
@@ -133,14 +133,7 @@ def contar_interacoes_aluno(dados, aluno_id, course_id):
             if tipo in contagem:
                 contagem[tipo] += 1
 
-                # Adiciona também à categoria "Atividades Formativas" se for um dos tipos base
-                if tipo in ['Páginas', 'Ficheiros', 'Lições']:
-                    contagem['Atividades Formativas'] += 1
-
     return contagem
-
-
-
 
 def get_dashboard_top_info(userid, course_id):
     try:

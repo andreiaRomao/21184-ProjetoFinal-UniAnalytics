@@ -76,7 +76,7 @@ def calcular_estatisticas_por_ano(completions, cursos):
     pie_por_ano = {}
     linhas_por_ano = {}
     inscritos_por_ano = (
-        df[['userid', 'ano_letivo']]
+        cursos[cursos['role'] == 'student'][['userid', 'ano_letivo']]
         .drop_duplicates()
         .groupby('ano_letivo')['userid']
         .nunique()
@@ -89,8 +89,14 @@ def calcular_estatisticas_por_ano(completions, cursos):
 
         for uid, grupo in df_ano.groupby('userid'):
             notas = grupo.set_index('itemname')['finalgrade'].to_dict()
-            grupo_nome = grupo['groupname'].dropna().unique()
-            grupo_nome = grupo_nome[0] if len(grupo_nome) > 0 else "Desconhecido"
+
+            # Vai buscar o groupname diretamente de 'cursos'
+            grupo_nome = cursos[
+                (cursos['userid'] == uid) & (cursos['courseid'] == grupo['course_id'].iloc[0])
+            ]['groupname'].dropna().unique()
+
+            grupo_nome = grupo_nome[0].lower() if len(grupo_nome) > 0 else "desconhecido"
+
             situacao = classificar_aluno(grupo_nome, notas)
             situacoes[uid] = situacao
 
@@ -102,10 +108,6 @@ def calcular_estatisticas_por_ano(completions, cursos):
         linhas_por_ano[ano] = [aprovados, reprovados]
 
     return linhas_por_ano, pie_por_ano, inscritos_por_ano
-
-# =========================
-# Callback de atualização
-# =========================
 
 # =========================
 # Callback de atualização
