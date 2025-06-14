@@ -30,6 +30,22 @@ def normalizar_nome_item(texto):
     texto = texto.replace('-', ' ').replace('_', ' ').strip()
     return texto
 
+def alunos_inscritos_uc(cursos, course_id):
+    cursos_df = pd.DataFrame(cursos)
+    return cursos_df[
+        (cursos_df['courseid'] == course_id) &
+        (cursos_df['role'] == 'student')
+    ]['userid'].unique()
+
+def filtrar_alunos_avaliacao_continua(cursos, course_id):
+    cursos_df = pd.DataFrame(cursos)
+    estudantes = cursos_df[
+        (cursos_df['courseid'] == course_id) &
+        (cursos_df['role'] == 'student')
+    ].copy()
+    estudantes['grupo'] = estudantes['groupname'].fillna('').str.lower()
+    return estudantes[estudantes['grupo'].str.contains('aval')]['userid'].unique()
+
 def contar_conteudos_publicados(dados, professor_id, course_id):
     tipos = {
         'resource': 'Ficheiros',
@@ -209,15 +225,7 @@ def obter_ultimo_acesso_uc(acessos, professor_id, course_id):
 
 def calcular_medias_efolios(completions, cursos, course_id):
     completions_df = pd.DataFrame(completions)
-    cursos_df = pd.DataFrame(cursos)
-
-    # Filtra estudantes da avaliação contínua
-    estudantes = cursos_df[
-        (cursos_df['courseid'] == course_id) &
-        (cursos_df['role'] == 'student')
-    ].copy()
-    estudantes['grupo'] = estudantes['groupname'].fillna('').str.lower()
-    alunos_aval = estudantes[estudantes['grupo'].str.contains('aval')]['userid'].unique()
+    alunos_aval = filtrar_alunos_avaliacao_continua(cursos, course_id)
 
     # Listas de notas
     notas_a, notas_b, notas_c = [], [], []
@@ -262,6 +270,101 @@ def calcular_medias_efolios(completions, cursos, course_id):
     return resultado
 
 
+def calcular_taxa_conclusao_efolios(completions, cursos, course_id):
+    completions_df = pd.DataFrame(completions)
+    alunos_aval = filtrar_alunos_avaliacao_continua(cursos, course_id)
+
+    estado_a, estado_b, estado_c = [], [], []
+
+    for aluno_id in alunos_aval:
+        notas_aluno = completions_df[
+            (completions_df["userid"] == aluno_id) &
+            (completions_df["course_id"] == course_id) &
+            (completions_df["module_type"] == "assign")
+        ]
+
+        estado_aluno_a = estado_aluno_b = estado_aluno_c = 0  # ← por default: 0 (não entregou)
+
+        for _, row in notas_aluno.iterrows():
+            nome = normalizar_nome_item(row.get("itemname") or "")
+            nome_sanitizado = nome.replace(" ", "")
+            completion = int(row.get("completionstate") or 0)
+
+            if "efolioa" in nome_sanitizado:
+                estado_aluno_a = completion
+            elif "efoliob" in nome_sanitizado:
+                estado_aluno_b = completion
+            elif "efolioc" in nome_sanitizado:
+                estado_aluno_c = completion
+            elif "global" in nome_sanitizado:
+                continue  # exclui global
+
+        estado_a.append(estado_aluno_a)
+        estado_b.append(estado_aluno_b)
+        estado_c.append(estado_aluno_c)
+
+    def percentagem(lista):
+        return round(sum(lista) / len(lista) * 100, 1) if lista else 0.0
+
+    resultado = {
+        "E-fólio A": percentagem(estado_a),
+        "E-fólio B": percentagem(estado_b)
+    }
+
+    if any(estado_c):
+        resultado["E-fólio C"] = percentagem(estado_c)
+
+    media_final = round(sum(resultado.values()) / len(resultado), 1) if resultado else 0.0
+
+    return {
+        "por_atividade": resultado,
+        "media": media_final
+    }
+
+def calcular_taxa_conclusao_formativas(completions, cursos, course_id):
+    completions_df = pd.DataFrame(completions)
+    alunos_ids = alunos_inscritos_uc(cursos, course_id)
+
+    tipos_validos = ['page', 'resource', 'quiz', 'lesson']
+    totais_percentuais = []
+
+    for tipo in tipos_validos:
+        completions_tipo = completions_df[
+            (completions_df['course_id'] == course_id) &
+            (completions_df['module_type'] == tipo)
+        ]
+
+        if completions_tipo.empty:
+            continue
+
+        atividades_ids = completions_tipo['coursemodule_id'].unique()
+
+        total_atividades = len(atividades_ids)
+        total_alunos = len(alunos_ids)
+
+        if total_atividades == 0 or total_alunos == 0:
+            continue
+
+        # Total de interações válidas
+        interacoes_validas = completions_tipo[
+            (completions_tipo['completionstate'] == 1) &
+            (completions_tipo['userid'].isin(alunos_ids))
+        ]
+
+        total_interacoes = len(interacoes_validas)
+
+        # Taxa de conclusão por tipo
+        total_possivel = total_atividades * total_alunos
+        percentagem = round((total_interacoes / total_possivel) * 100, 1)
+
+        totais_percentuais.append(percentagem)
+
+    # Média das percentagens de todos os tipos
+    media_final = round(sum(totais_percentuais) / len(totais_percentuais)) if totais_percentuais else 0
+
+    return media_final
+
+
 # =========================
 # Layout principal
 # =========================
@@ -277,9 +380,6 @@ def layout(professor_id, course_id):
         topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, professor_id, course_id)
         velocidade = calcular_velocidade_resposta(dados_forum, professor_id, course_id)
 
-        # Continuar a usar isto para as conclusões e gauge
-        dados_alunos = obter_dados_desempenho_alunos()
-
         dados_acessos = qp.fetch_course_access_logs()
         media_acessos = calcular_media_acessos_semanal(dados_acessos, professor_id, course_id)
         ultimo_acesso = obter_ultimo_acesso_uc(dados_acessos, professor_id, course_id)
@@ -288,6 +388,9 @@ def layout(professor_id, course_id):
         dados_medias = calcular_medias_efolios(dados_completions, dados_cursos, course_id)
         distribuicao = calcular_distribuicao_desempenho_global_professor(dados_completions, dados_cursos, course_id)
 
+        taxa_conclusao = calcular_taxa_conclusao_efolios(dados_completions, dados_cursos, course_id)
+        taxa_conclusao_formativas = calcular_taxa_conclusao_formativas(dados_completions, dados_cursos, course_id)
+
     except Exception as e:
         print("[ERRO] (layout) Falha ao gerar o dashboard do professor.")
         traceback.print_exc()
@@ -295,6 +398,16 @@ def layout(professor_id, course_id):
 
     return html.Div(children=[
         render_topo_geral(professor_id, course_id),
+
+        html.Div(children=[
+            html.H2("Informação Geral do Docente", style={
+                "fontSize": "26px",
+                "fontWeight": "bold",
+                "color": "#2c3e50",
+                "marginBottom": "8px",
+                "text-align": "center"
+            })
+        ]),
 
         html.Div(
             children=[
@@ -322,15 +435,10 @@ def layout(professor_id, course_id):
             style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}
         ),
 
-        html.Div(className="linha-3-blocos", children=[
-            render_card_conclusao_atividades(
-                dados_alunos["gauge"],
-                {
-                    **dados_alunos["conclusao"]["avaliativas"],
-                    **dados_alunos["conclusao"]["formativas"]
-                }
-            )
-        ]),
+        render_card_conclusoes_gauge({
+            "avaliativas": taxa_conclusao["media"],
+            "formativas": taxa_conclusao_formativas
+        }),
 
         render_card_mini_graficos(
             dados_medias,
@@ -360,7 +468,7 @@ def render_conteudos_publicados(contagem):
     cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal","bg-purple", "bg-pink"]
 
     return html.Div(className="card card-volume", children=[
-        html.H4("Recursos Publicados", className="card-section-title"),
+        html.H4("Recursos Pedagógicos", className="card-section-title"),
         html.Ul(className="volume-list", children=[
             html.Li(className="volume-item", children=[
                 html.Div(className=f"volume-icon-bg {cores[i]}", children=[
@@ -496,7 +604,7 @@ def render_card_estado_global(distribuicao):
     # Ordem garantida
     estados = ["Crítico", "Em Risco", "Expectável"]
     valores = [distribuicao.get(e, 0) for e in estados]
-    cores = ["#dc3545", "#ffc107", "#28a745"]  # vermelho, amarelo, verde
+    cores = ["#ec6c6c", "#f7c948", "#63c78d"] # vermelho, amarelo, verde
 
     fig = go.Figure(data=[go.Pie(
         labels=estados,
@@ -587,3 +695,31 @@ def render_card_acessos(media_acessos, ultimo_acesso):
         ])
     ])
 
+def gerar_gauge_dashboard_professor(titulo, valor, cor):
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=valor,
+        gauge={
+            'shape': "angular",
+            'axis': {'range': [0, 100]},
+            'bar': {'color': cor},
+            'bgcolor': "#f4faf4"
+        },
+        number={'font': {'size': 36}, 'valueformat': '.0f'},
+        title={"text": ""}
+    ))
+    fig.update_layout(
+        margin=dict(t=10, b=10, l=10, r=10),
+        height=180
+    )
+
+    return html.Div(className="dashboard-professor-gauge-card", children=[
+        html.H4(titulo, className="dashboard-professor-gauge-titulo"),
+        dcc.Graph(figure=fig, config={"displayModeBar": False})
+    ])
+
+def render_card_conclusoes_gauge(valores_gauge):
+    return html.Div(className="dashboard-professor-gaugue-linha", children=[
+        gerar_gauge_dashboard_professor("Taxa de conclusão das avaliações", valores_gauge["avaliativas"], "#b6f7c3"),
+        gerar_gauge_dashboard_professor("Taxa de conclusão das atividades", valores_gauge["formativas"], "#b2d7d5")
+    ])

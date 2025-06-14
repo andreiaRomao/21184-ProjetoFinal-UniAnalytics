@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import queries.queriesAluno as qa
 import queries.queriesGeral as qg
 import traceback
+import re
 
 from dashboards.dashboardGeral import layout as layout_geral
 
@@ -158,8 +159,7 @@ def get_dashboard_top_info(userid, course_id):
         print("[ERRO] (get_dashboard_top_info):", e)
         return "Erro", "Erro", "Erro"
 
-def extrair_ano_letivo(course_name):
-    import re
+def extrair_ano_letivo(course_name):    
     match = re.search(r'_(\d{2})', course_name)
     if match:
         sufixo = int(match.group(1))

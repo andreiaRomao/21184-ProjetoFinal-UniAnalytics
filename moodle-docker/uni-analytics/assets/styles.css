@@ -769,6 +769,33 @@ textarea::placeholder {
   flex-direction: column;
 }
 
+.dashboard-professor-gaugue-linha {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 0 30px 30px;
+  max-width: 1000px;
+  margin: 20px auto 0 auto; 
+  background-color: #f4faf4;
+}
+
+.dashboard-professor-gauge-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+.dashboard-professor-gauge-titulo {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+
 /* Está a ser usado? */
 .dashboard-professor .coluna-esquerda,
 .dashboard-professor .coluna-direita {

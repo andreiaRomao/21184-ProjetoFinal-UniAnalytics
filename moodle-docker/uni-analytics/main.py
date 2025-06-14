@@ -100,7 +100,8 @@ def display_page(pathname, search):
                 dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
             ])
         elif user_role == "professor":
-            links.append([
+            # links.append([
+            links.extend([
                 dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
