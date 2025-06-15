@@ -110,6 +110,8 @@ def init_uni_analytics_db():
         CREATE TABLE IF NOT EXISTS efolios (
             item_id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
+            course_id INTEGER NOT NULL,
+            course_name TEXT NOT NULL,
             start_date DATETIME NOT NULL,
             end_date DATETIME NOT NULL,
             available_pre INTEGER DEFAULT 0,

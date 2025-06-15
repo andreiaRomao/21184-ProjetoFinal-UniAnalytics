@@ -2,7 +2,7 @@ from forms import formularioPre, formularioPos, formulariosAdmin
 from utils.logger import logger
 from db.uniAnalytics import connect_to_uni_analytics_db
 from datetime import datetime, timedelta
-from dash import html
+from dash import html, dcc
 
 # Função que devolve o layout com base na rota atual, validando janela temporal
 def get_layout(pathname, user_id, item_id):
@@ -60,3 +60,48 @@ def get_layout(pathname, user_id, item_id):
 
     logger.warning(f"[Router] Rota não reconhecida: {pathname}")
     return None
+
+def listar_formularios_disponiveis():
+    try:
+        logger.debug("[Formulários] A verificar formulários disponíveis...")
+        conn = connect_to_uni_analytics_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT item_id, name, course_name, available_pre, available_pos
+            FROM efolios
+            WHERE available_pre = 1 OR available_pos = 1
+            ORDER BY start_date DESC
+        """)
+        resultados = cursor.fetchall()
+        conn.close()
+
+        logger.debug(f"[Formulários] Formularios encontrados: {len(resultados)}")
+
+        componentes = []
+        for item_id, nome, curso, pre, pos in resultados:
+            texto_base = f"{curso} - {nome}"
+
+            if pre:
+                logger.debug(f"[Formulários] Disponível Pré: {texto_base} (item_id={item_id})")
+                componentes.append(
+                    dcc.Link(f"→ Inquérito Pré: {texto_base}", href=f"/forms/formularioPre?item_id={item_id}", style={"display": "block", "margin": "8px"})
+                )
+            if pos:
+                logger.debug(f"[Formulários] Disponível Pós: {texto_base} (item_id={item_id})")
+                componentes.append(
+                    dcc.Link(f"→ Inquérito Pós: {texto_base}", href=f"/forms/formularioPos?item_id={item_id}", style={"display": "block", "margin": "8px"})
+                )
+
+        if not componentes:
+            logger.info("[Formulários] Nenhum formulário de avaliação disponível.")
+            return html.Div("Nenhum formulário de avaliação disponível neste momento.")
+
+        return html.Div([
+            html.H3("Formulários de Avaliação Disponíveis"),
+            html.Div(componentes)
+        ])
+    
+    except Exception as e:
+        logger.error("[ERRO] (listar_formularios_disponiveis):", exc_info=True)
+        return html.Div("Erro ao carregar formulários disponíveis.")

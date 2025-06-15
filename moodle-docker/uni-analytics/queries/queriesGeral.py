@@ -74,10 +74,13 @@ def fetch_all_efolios():
         SELECT
             gi.id AS item_id,
             a.name,
+            a.course AS course_id,
+            c.fullname AS course_name,
             FROM_UNIXTIME(a.allowsubmissionsfromdate) AS start_date,
             FROM_UNIXTIME(a.duedate) AS end_date
         FROM mdl_assign a
         JOIN mdl_grade_items gi ON gi.iteminstance = a.id
+        JOIN mdl_course c ON c.id = a.course
         WHERE gi.itemmodule = 'assign' AND a.name LIKE '%folio%';
     """
     try:

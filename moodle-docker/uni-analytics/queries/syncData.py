@@ -161,15 +161,21 @@ def sync_efolios_data():
 
         for row in dados:
             try:
-                logger.debug(f"[SYNC][EFOLIOS] Inserir: item_id={row['item_id']}, name={row['name']}, start={row['start_date']}, end={row['end_date']}")
+                logger.debug(
+                    f"[SYNC][EFOLIOS] Inserir: item_id={row['item_id']}, "
+                    f"name={row['name']}, course_id={row['course_id']}, "
+                    f"course_name={row['course_name']}, start={row['start_date']}, end={row['end_date']}"
+                )
                 cursor_local.execute("""
                     INSERT INTO efolios (
-                        item_id, name, start_date, end_date
+                        item_id, name, course_id, course_name, start_date, end_date
                     )
-                    VALUES (?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """, (
                     row["item_id"],
                     row["name"],
+                    row["course_id"],
+                    row["course_name"],
                     row["start_date"],
                     row["end_date"]
                 ))

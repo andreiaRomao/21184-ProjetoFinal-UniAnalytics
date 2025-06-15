@@ -109,11 +109,11 @@ def display_page(pathname, search):
         elif user_role == "aluno":
             links.extend([
                 dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Inquérito Pré-Avaliação", href="/forms/formularioPre?item_id=1", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Inquérito Pós-Avaliação", href="/forms/formularioPos?item_id=1", style={"display": "block", "margin": "10px"}),
                 dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})      
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
             ])
+            # Adiciona os formulários disponíveis dinamicamente
+            links.append(formularioMain.listar_formularios_disponiveis())
 
         return html.Div([
             html.H1("Bem-vindo ao Dashboard de Learning Analytics"),
