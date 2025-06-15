@@ -30,9 +30,6 @@ from utils.logger import logger
 | 21          | Relativamente á sessão síncrona de apoio ao e-fólio, como a avalias?                       | 70          | Não foi útil – os temas abordados não ajudaram, foi confusa ou houve falta de preparação.                               |
 """
 
-from db.uniAnalytics import connect_to_uni_analytics_db
-from utils.logger import logger
-
 def pos_confianca_preparacao(item_id):
     try:
         conn = connect_to_uni_analytics_db()

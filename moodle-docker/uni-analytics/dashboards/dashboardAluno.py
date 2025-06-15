@@ -167,6 +167,16 @@ def extrair_ano_letivo(course_name):
         return f"{ano_inicio}/{ano_inicio + 1}"
     return None
 
+def obter_progresso_avaliacao(dados_completions, aluno_id, course_id, grupo_aluno, assigns_validos):
+    mostrar = not grupo_aluno or "exam" not in grupo_aluno
+    if mostrar:
+        valor = calcular_pct_completions(
+            dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
+        )
+    else:
+        valor = 0
+    return mostrar, valor
+
 # =========================
 # Layout principal
 # =========================
@@ -181,14 +191,9 @@ def layout(aluno_id, course_id):
         assigns_validos = obter_assigns_validos(dados_completions, course_id, grupo_aluno)
 
         # Se for grupo de exame, não mostrar progresso de avaliação
-        mostrar_avaliacao = not grupo_aluno or "exam" not in grupo_aluno
-
-        if mostrar_avaliacao:
-            avaliacao = calcular_pct_completions(
-                dados_completions, aluno_id, course_id, ['assign'], apenas_ids=assigns_validos
-            )
-        else:
-            avaliacao = 0  # Não será usado, mas evita erro
+        mostrar_avaliacao, avaliacao = obter_progresso_avaliacao(
+            dados_completions, aluno_id, course_id, grupo_aluno, assigns_validos
+        )
 
         progresso_global = calcular_pct_completions(
             dados_completions, aluno_id, course_id, ['page', 'resource', 'quiz', 'lesson'], grupo_aluno=grupo_aluno
@@ -215,7 +220,7 @@ def layout(aluno_id, course_id):
         render_topo_geral(aluno_id, course_id),
 
         html.Div(children=[
-            html.H2("Aluno - Informação Geral do aluno", style={
+            html.H2("Informação Geral do aluno", style={
                 "fontSize": "26px",
                 "fontWeight": "bold",
                 "color": "#2c3e50",
@@ -345,8 +350,7 @@ def barra_personalizada(label, valor, cor_primaria):
             html.Div(style={"width": f"{valor}%", "backgroundColor": cor_primaria}, className="barra-progresso"),
             html.Div(f"{valor}%", className="barra-texto")
         ])
-    ])
-
+    ])    
 
 def render_topo_geral(userid, course_id):
     nome, papel, curso = get_dashboard_top_info(userid, course_id)

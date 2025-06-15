@@ -729,15 +729,19 @@ textarea::placeholder {
 }
 
 .dashboard-professor-forum-item-criados {
-  background-color: #7cc3ac;  /* verde principal */
+  background-color: #618685; 
 }
 
 .dashboard-professor-forum-item-respondidos {
-  background-color: #a4dfc1;  /* verde claro */
+  background-color: #7cc3ac; 
 }
 
 .dashboard-professor-forum-item-velocidade {
-  background-color: #bce9d9;   /* verde mais claro (novo) */
+  background-color: #a4dfc1;  
+}
+
+.dashboard-professor-forum-item-participacao {
+  background-color: #bce9d9; 
 }
 
 .dashboard-professor-forum-label {
@@ -1363,4 +1367,141 @@ textarea::placeholder {
 
 .logout-btn:hover {
     background-color: #12885d;
+}
+
+/* ===============================
+   DashBoard PRE
+   =============================== */
+.dashboard-pre-titulo {
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.dashboard-pre-row {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-pre-card {
+  flex: 1;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+  padding-bottom: 40px; 
+}
+
+.dashboard-pre-card-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.dashboard-pre-subsecao {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 20px;
+  margin-bottom: -10px;
+}
+
+.dashboard-pre-subtitulo {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 0px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.dashboard-pre-dropdown {
+  width: 100%;
+  max-width: 320px;
+  padding: 8px;
+  font-size: 15px;
+  font-family: 'Segoe UI', sans-serif;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  background-color: #ffffff;
+  color: #2c3e50;
+}
+
+.dashboard-pre-dropdown-wrapper {
+  position: relative; 
+  z-index: 10;
+  margin-bottom: 20px;  
+}
+
+.dashboard-pre-dropdown .Select-control,
+.dashboard-pre-dropdown .Select-placeholder,
+.dashboard-pre-dropdown .Select-value-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-pre-dropdown .Select-menu-outer {
+  max-width: none;
+  min-width: 320px;
+  white-space: normal;
+}
+
+.dashboard-pre-dropdown .Select-option {
+  padding: 10px 14px;
+  font-size: 15px;
+  color: #2c3e50;
+}
+
+.dashboard-pre-dropdown .is-selected {
+  font-weight: bold;
+  background-color: #eaf7ff;
+}
+
+.Select-menu-outer {
+  z-index: 1000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashboard-pre-info-respostas {
+  text-align: center;
+  color: #555;
+  font-size: 14px;
+  margin-top: 8px;  
+  margin-bottom: 0px; 
+}
+
+.dashboard-pre-legenda-2colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 20px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: #2c3e50;
+  min-height: 60px;
+}
+
+.dashboard-pre-legenda-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.dashboard-pre-legenda-cor {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
 }

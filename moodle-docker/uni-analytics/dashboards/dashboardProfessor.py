@@ -364,6 +364,88 @@ def calcular_taxa_conclusao_formativas(completions, cursos, course_id):
 
     return media_final
 
+def calcular_ultima_participacao_forum(posts, professor_id, course_id):
+    posts_professor = [
+        p for p in posts
+        if p["userid"] == professor_id and p["course_id"] == course_id
+    ]
+    if not posts_professor:
+        return "—"
+
+    mais_recente = max(posts_professor, key=lambda p: p["timecreated"])
+    dt = datetime.fromtimestamp(mais_recente["timecreated"])
+    return dt.strftime("%d/%m/%Y %H:%M")
+
+def gerar_barra_conclusao(label, valor):
+    return html.Div(className="barra-container", children=[
+        html.Div(label, className="barra-label"),
+        html.Div(className="barra-fundo", children=[
+            html.Div(className="barra-progresso", style={
+                "width": f"{valor}%",
+                "backgroundColor": "#9eff58"
+            }),
+            html.Div(f"{valor}%", className="barra-texto")
+        ])
+    ])
+
+def gerar_semi_circulo(label, valor):
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=valor,
+        gauge={
+            'shape': "angular",
+            'axis': {'range': [0, 100]},
+            'bar': {'color': "#9eff58"},
+            'bgcolor': "#e6e6e6"
+        },
+        number={'font': {'size': 40}},
+        title={"text": ""}
+    ))
+    fig.update_layout(
+        margin=dict(t=20, b=0, l=0, r=0),
+        height=100,
+        width=130
+    )
+
+    return dcc.Graph(
+        figure=fig,
+        config={"displayModeBar": False},
+        style={"height": "140px", "width": "130px", "margin": "0 auto"}
+    )
+
+def bloco_conclusao_linha(nome, valor_gauge, labels, dados_conclusao):
+    return html.Div(className="bloco-conclusao-linha", children=[
+        html.Div(className="bloco-conclusao-gauge", children=[
+            gerar_semi_circulo(nome, valor_gauge)
+        ]),
+        html.Div(className="bloco-conclusao-barras", children=[
+            html.Div(nome, style={"fontWeight": "bold", "marginBottom": "6px"}),
+            *[gerar_barra_conclusao(label, dados_conclusao[label]) for label in labels]
+        ])
+    ])
+
+def gerar_gauge_dashboard_professor(titulo, valor, cor):
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=valor,
+        gauge={
+            'shape': "angular",
+            'axis': {'range': [0, 100]},
+            'bar': {'color': cor},
+            'bgcolor': "#f4faf4"
+        },
+        number={'font': {'size': 36}, 'valueformat': '.0f'},
+        title={"text": ""}
+    ))
+    fig.update_layout(
+        margin=dict(t=10, b=10, l=10, r=10),
+        height=180
+    )
+
+    return html.Div(className="dashboard-professor-gauge-card", children=[
+        html.H4(titulo, className="dashboard-professor-gauge-titulo"),
+        dcc.Graph(figure=fig, config={"displayModeBar": False})
+    ])
 
 # =========================
 # Layout principal
@@ -379,6 +461,7 @@ def layout(professor_id, course_id):
 
         topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, professor_id, course_id)
         velocidade = calcular_velocidade_resposta(dados_forum, professor_id, course_id)
+        ultima_participacao = calcular_ultima_participacao_forum(dados_forum, professor_id, course_id)
 
         dados_acessos = qp.fetch_course_access_logs()
         media_acessos = calcular_media_acessos_semanal(dados_acessos, professor_id, course_id)
@@ -418,7 +501,7 @@ def layout(professor_id, course_id):
 
         html.Div(className="dashboard-professor-linha3colunas", children=[
             html.Div(className="dashboard-professor-coluna", children=[
-                render_card_forum(topicos_criados, topicos_respondidos, velocidade, media_acessos)
+                render_card_forum(topicos_criados, topicos_respondidos, velocidade, media_acessos, ultima_participacao)
             ]),
             html.Div(className="dashboard-professor-coluna", children=[
                 render_card_acessos(media_acessos, ultimo_acesso)
@@ -445,10 +528,6 @@ def layout(professor_id, course_id):
             distribuicao
         )
     ])
-
-
-
-
 
 # =========================
 # Componentes visuais
@@ -480,7 +559,7 @@ def render_conteudos_publicados(contagem):
         ])
     ])
 
-def render_card_forum(criados, respondidos, velocidade, media_acessos):
+def render_card_forum(criados, respondidos, velocidade, media_acessos, ultima_participacao):
     return html.Div(className="card dashboard-professor-card-forum", children=[
         html.H4("Fórum - Tópicos", className="dashboard-professor-card-title"),
         html.Div(className="dashboard-professor-forum-box", children=[
@@ -498,12 +577,14 @@ def render_card_forum(criados, respondidos, velocidade, media_acessos):
                 DashIconify(icon="mdi:clock-outline", width=28, color="white"),
                 html.Div("Velocidade de Resposta", className="dashboard-professor-forum-label"),
                 html.Div(velocidade if velocidade is not None else "—", className="dashboard-professor-forum-numero")
+            ]),
+            html.Div(className="dashboard-professor-forum-item dashboard-professor-forum-item-participacao", children=[
+                DashIconify(icon="mdi:account-arrow-right-outline", width=28, color="white"),
+                html.Div("Última Participação", className="dashboard-professor-forum-label"),
+                html.Div(ultima_participacao, className="dashboard-professor-forum-numero")
             ])
         ])
     ])
-
-
-# =========================
 
 def render_card_medias_classificacao(dados):
     labels = list(dados.keys())
@@ -531,66 +612,6 @@ def render_card_medias_classificacao(dados):
         html.H4("Média de classificações por atividade", className="card-section-title"),
         dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
     ])
-
-def render_card_conclusao_atividades(dados_gauge, dados_conclusao):
-    def barra(label, valor):
-        return html.Div(className="barra-container", children=[
-            html.Div(label, className="barra-label"),
-            html.Div(className="barra-fundo", children=[
-                html.Div(className="barra-progresso", style={
-                    "width": f"{valor}%",
-                    "backgroundColor": "#9eff58"
-                }),
-                html.Div(f"{valor}%", className="barra-texto")
-            ])
-        ])
-
-    def semicirculo(label, valor):
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=valor,
-            gauge={
-                'shape': "angular",
-                'axis': {'range': [0, 100]},
-                'bar': {'color': "#9eff58"},
-                'bgcolor': "#e6e6e6"
-            },
-            number={'font': {'size': 40}},
-            title={"text": ""}
-        ))
-        fig.update_layout(
-            margin=dict(t=20, b=0, l=0, r=0),
-            height=100,
-            width=130
-        )
-        
-        return dcc.Graph(
-            figure=fig,
-            config={"displayModeBar": False},
-            style={"height": "140px", "width": "130px", "margin": "0 auto"}
-        )
-
-    def bloco_conjunto(nome, valor_gauge, labels):
-        return html.Div(className="bloco-conclusao-linha", children=[
-            html.Div(className="bloco-conclusao-gauge", children=[
-                semicirculo(nome, valor_gauge)
-            ]),
-            html.Div(className="bloco-conclusao-barras", children=[
-                html.Div(nome, style={"fontWeight": "bold", "marginBottom": "6px"}),
-                *[barra(label, dados_conclusao[label]) for label in labels]
-            ])
-        ])
-
-    return html.Div(className="card-bloco card-bloco-conclusao", children=[
-        html.H4("Taxa de Conclusão de Atividades", className="card-section-title"),
-        bloco_conjunto("Avaliação", dados_gauge["avaliativas"], ["E-fólio A", "E-fólio B", "E-fólio Global"]),
-        bloco_conjunto("Formativas", dados_gauge["formativas"], ["AF1", "AF2", "AF3"]),
-        html.Div(style={"display": "flex", "justifyContent": "center", "marginTop": "0px"}, children=[
-            html.Span("🟩 Concluídas", style={"marginRight": "12px"}),
-            html.Span("⬜ Por concluir")
-        ])
-    ])
-
 
 
 def render_card_mini_graficos(medias, distribuicao):
@@ -624,39 +645,6 @@ def render_card_estado_global(distribuicao):
         dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
     ])
 
-
-def obter_dados_desempenho_alunos():
-    return {
-        "medias": {
-            "E-fólio A": 3.1,
-            "E-fólio B": 2.5,
-            "E-fólio Global": 8.6,
-            "Total": 14.2
-        },
-        "conclusao": {
-            "avaliativas": {
-                "E-fólio A": 95,
-                "E-fólio B": 62,
-                "E-fólio Global": 32
-            },
-            "formativas": {
-                "AF1": 53,
-                "AF2": 78,
-                "AF3": 89
-            }
-        },
-        "gauge": {
-            "avaliativas": 95,
-            "formativas": 45
-        },
-        "estado_global": {
-            "Crítico": 20,
-            "Em Risco": 30,
-            "Expectável": 50
-        }
-    }
-
-
 def render_topo_geral(userid, course_id):
     nome, papel, curso = get_dashboard_top_info(userid, course_id)
     ano_curso_atual = extrair_ano_letivo(curso) or ""
@@ -685,7 +673,7 @@ def render_card_acessos(media_acessos, ultimo_acesso):
             html.Div(className="dashboard-professor-acesso-item", children=[
                 DashIconify(icon="mdi:account-clock-outline", width=28, color="white"),
                 html.Div("Média de acessos (semanal)", className="dashboard-professor-acesso-label"),
-                html.Div(f"{media_acessos} acessos/semana", className="dashboard-professor-acessos-numero")
+                html.Div(f"{int(round(media_acessos))} acessos/semana", className="dashboard-professor-acesso-numero")
             ]),
             html.Div(className="dashboard-professor-acesso-item dashboard-professor-acesso-item-claro", children=[
                 DashIconify(icon="mdi:calendar-clock", width=28, color="white"),
@@ -693,29 +681,6 @@ def render_card_acessos(media_acessos, ultimo_acesso):
                 html.Div(ultimo_acesso, className="dashboard-professor-acesso-numero")
             ])
         ])
-    ])
-
-def gerar_gauge_dashboard_professor(titulo, valor, cor):
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=valor,
-        gauge={
-            'shape': "angular",
-            'axis': {'range': [0, 100]},
-            'bar': {'color': cor},
-            'bgcolor': "#f4faf4"
-        },
-        number={'font': {'size': 36}, 'valueformat': '.0f'},
-        title={"text": ""}
-    ))
-    fig.update_layout(
-        margin=dict(t=10, b=10, l=10, r=10),
-        height=180
-    )
-
-    return html.Div(className="dashboard-professor-gauge-card", children=[
-        html.H4(titulo, className="dashboard-professor-gauge-titulo"),
-        dcc.Graph(figure=fig, config={"displayModeBar": False})
     ])
 
 def render_card_conclusoes_gauge(valores_gauge):
