@@ -82,58 +82,58 @@ def register_callbacks(app):
         Input("perguntas-pre", "data"),
         State("respostas-pre", "data")
     )
+
     def mostrar_pergunta(etapa, perguntas, respostas):
         if perguntas is None:
             raise PreventUpdate
 
-        # Caso esteja na introdução (etapa 0)
+        # Etapa de introdução
         if etapa == 0:
             return html.Div(
                 "Bem-vindo ao formulário de pré-avaliação. As seguintes perguntas servem apenas para fins estatísticos e não serão associadas à tua identidade.",
                 className="pergunta-card"
-            ), {"display": "inline-block"}, {"display": "none"}, {"display": "none"} 
+            ), {"display": "inline-block"}, {"display": "none"}, {"display": "none"}
 
-        # Caso tenha terminado todas as perguntas (etapa final para submissão)
+        # Etapas de perguntas (1 até len(perguntas))
+        if 1 <= etapa <= len(perguntas):
+            pergunta_atual = perguntas[etapa - 1]
+            pergunta_id = pergunta_atual["id"]
+
+            try:
+                conn = connect_to_uni_analytics_db()
+                cursor = conn.cursor()
+                query = "SELECT id, answer FROM forms_answers WHERE question_id = ?"
+                cursor.execute(query, (pergunta_id,))
+                rows = cursor.fetchall()
+                conn.close()
+                opcoes = [{"label": r[1], "value": r[0]} for r in rows]
+            except Exception as e:
+                logger.exception("[PRE] Erro ao carregar opções")
+                opcoes = []
+
+            return html.Div([
+                html.Label(pergunta_atual["texto"]),
+                dcc.Dropdown(
+                    id={"type": "resposta-pre", "index": etapa},
+                    options=opcoes,
+                    className="pergunta-opcao",
+                    placeholder="Seleciona uma opção",
+                    value=respostas.get(str(pergunta_id))
+                )
+            ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}, {"display": "inline-block" if etapa > 1 else "none"}
+
+        # Etapa de confirmação antes da submissão
         if etapa == len(perguntas) + 1:
-            return html.Div(
-                "Obrigado! As tuas respostas vão ser submetidas.",
-                className="pergunta-card"
-            ), {"display": "none"}, {"display": "none"}, {"display": "none"}  # Após submissão, tudo escondido
-
-        if etapa == len(perguntas):
             return html.Div(
                 "Confirmação: Estás prestes a submeter as tuas respostas.",
                 className="pergunta-card"
-            ), {"display": "none"}, {"display": "inline-block"}, {"display": "inline-block"}  # Submissão ativa, permite voltar
+            ), {"display": "none"}, {"display": "inline-block"}, {"display": "inline-block"}
 
-        # Caso esteja a visualizar uma pergunta
-        pergunta_atual = perguntas[etapa - 1]
-        pergunta_id = pergunta_atual["id"]
-
-        try:
-            conn = connect_to_uni_analytics_db()
-            cursor = conn.cursor()
-            query = "SELECT id, answer FROM forms_answers WHERE question_id = ?"
-            params = (pergunta_id,)
-            logger.debug(f"[PRE] Executar query: {query} | Params: {params}")
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
-            opcoes = [{"label": r[1], "value": r[0]} for r in rows]
-        except Exception as e:
-            logger.exception("[PRE] Erro ao carregar opções da pergunta")
-            opcoes = []
-
-        return html.Div([
-            html.Label(pergunta_atual["texto"]),
-            dcc.Dropdown(
-                id={"type": "resposta-pre", "index": etapa},
-                options=opcoes,
-                className="pergunta-opcao",
-                placeholder="Seleciona uma opção",
-                value=respostas.get(str(pergunta_id))
-            )
-        ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}, {"display": "inline-block" if etapa > 1 else "none"}
+        # Mensagem final depois de submeter
+        return html.Div(
+            "Obrigado! As tuas respostas vão ser submetidas.",
+            className="pergunta-card"
+        ), {"display": "none"}, {"display": "none"}, {"display": "none"}
 
     # Callback unificado para avançar ou recuar entre perguntas
     @app.callback(
@@ -204,6 +204,7 @@ def register_callbacks(app):
 
             # Inserir cada resposta
             for pergunta_id_str, answer_id in respostas.items():
+                logger.debug(f"[PRE] A guardar resposta — Aluno {aluno_id}, Item {item_id}, Pergunta {pergunta_id_str}, Resposta {answer_id}")
                 query = """
                     INSERT INTO forms_student_answers (student_id, item_id, question_id, answer_id, form_type)
                     VALUES (?, ?, ?, ?, ?)
