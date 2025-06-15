@@ -74,6 +74,10 @@ services:
       - SYNC_HOUR=00
       - SYNC_MINUTE=00
 
+      # Definição da hora de execução da validação dos formulários
+      - VALIDATION_HOUR=01
+      - VALIDATION_MINUTE=00
+
     command: ["python", "scheduler.py"]  # Ficheiro que corre continuamente no fundo
 
   # Base de dados MySQL

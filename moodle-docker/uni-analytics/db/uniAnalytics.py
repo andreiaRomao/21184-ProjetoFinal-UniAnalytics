@@ -111,7 +111,9 @@ def init_uni_analytics_db():
             item_id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             start_date DATETIME NOT NULL,
-            end_date DATETIME NOT NULL
+            end_date DATETIME NOT NULL,
+            available_pre INTEGER DEFAULT 0,
+            available_pos INTEGER DEFAULT 0
         );
     """)
 
