@@ -1387,6 +1387,7 @@ textarea::placeholder {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  align-items: stretch;
 }
 
 .dashboard-pre-card {

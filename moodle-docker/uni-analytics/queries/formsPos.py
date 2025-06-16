@@ -217,3 +217,57 @@ def pos_sessao_sincrona_qualidade(item_id):
     except Exception as e:
         logger.exception("[ADMIN] Erro ao listar respostas pos_sessao_sincrona_qualidade")
         return []
+
+def pos_horas_dedicadas(item_id):
+    try:
+        conn = connect_to_uni_analytics_db()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT 
+                e.item_id,
+                e.name AS item_name,
+                CASE a.answer_id
+                    WHEN 57 THEN 'Menos de 2h'
+                    WHEN 54 THEN 'Entre 2h a 5h'
+                    WHEN 55 THEN 'Entre 5h a 10h'
+                    WHEN 56 THEN 'Mais de 10h'
+                    ELSE 'Outro'
+                END AS horas_dedicadas,
+                COUNT(*) AS total_respostas
+            FROM forms_student_answers a
+            JOIN efolios e ON a.item_id = e.item_id
+            WHERE a.question_id = 17
+              AND a.form_type = 'pos'
+              AND a.item_id = ?
+            GROUP BY e.item_id, e.name, horas_dedicadas
+            ORDER BY e.item_id, horas_dedicadas;
+        """
+        logger.debug(f"[QUERY] pos_horas_dedicadas: {query.strip()} com item_id={item_id}")
+        cursor.execute(query, (item_id,))
+        return cursor.fetchall()
+    except Exception as e:
+        logger.exception("[ADMIN] Erro ao listar respostas pos_horas_dedicadas")
+        return []
+
+
+def pos_obter_course_id_e_total_respostas(item_id):
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT 
+          (SELECT course_id FROM efolios WHERE item_id = ?) AS course_id,
+          (SELECT COUNT(DISTINCT student_id) 
+           FROM forms_student_answers 
+           WHERE form_type = 'pre' AND item_id = ?) AS total_respostas;
+    """
+    cursor.execute(query, (item_id, item_id))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        course_id, total_respostas = row
+        return course_id, total_respostas
+    else:
+        return None, 0

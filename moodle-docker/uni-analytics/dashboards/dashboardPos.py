@@ -6,6 +6,7 @@ from datetime import datetime
 import queries.queriesGeral as qg
 from utils.logger import logger
 import queries.formsPos as qpos
+import queries.formsGeral as qfgeral
 
 
 
@@ -19,11 +20,32 @@ def register_callbacks(app):
 
     @app.callback(
         Output("grafico_confianca_pos", "figure"),
+        Output("grafico_horas_pos", "figure"),
+        Output("grafico_expectativa", "children"),
+        Output("grafico_dificuldade", "children"),
+        Output("grafico_esforco", "children"),
+        Output("grafico_abrangencia", "children"),
+        Output("grafico_sincrona", "children"),
+        Output("info_total_respostas_pos", "children"),
         Input("dropdown_item_pos", "value")
     )
     def atualizar_grafico(item_id):
-        return gerar_grafico_confianca_pos(item_id)
-
+        valores_horas = get_valores_reais_horas_pos(item_id)
+        valores_exp = get_valores_reais_expectativa(item_id)
+        valores_dif = get_valores_reais_dificuldade(item_id)
+        valores_esf = get_valores_reais_esforco(item_id)
+        valores_abr = get_valores_reais_abrangencia(item_id)
+        valores_sin = get_valores_reais_sincrona(item_id)
+        return (
+            gerar_grafico_confianca_pos(item_id),
+            render_grafico_horas_pos(valores_horas),
+            render_grafico_expectativa(valores_exp),
+            render_grafico_dificuldade(valores_dif),
+            render_grafico_esforco(valores_esf),
+            render_grafico_abrangencia(valores_abr),
+            render_grafico_sincrona(valores_sin),
+            render_total_respostas_info_reais(item_id)
+        )
 
 def obter_opcoes_dropdown_pos():
     try:
@@ -74,44 +96,130 @@ def gerar_grafico_confianca_pos(item_id):
     )
     return fig
 
+def get_total_respostas_info_reais(item_id):
+    try:
+        # Obtemos o course_id e o total de respostas do forms
+        course_id, total_respostas = qfgeral.pre_pos_obter_course_id_e_total_respostas(item_id)
+        if not course_id:
+            return "Curso não encontrado."
 
-# =========================
-# DADOS MARTELADOS - APAGAR DEPOIS
-# =========================
+        # Obtemos a lista de utilizadores inscritos nesse curso
+        df_utilizadores = qg.fetch_user_course_data()
 
-def get_total_respostas_martelado():
-    total_respostas = 30
-    total_alunos = 100
-    return total_respostas, total_alunos
+        # Filtramos alunos da Avaliação Contínua naquele curso
+        df_filtrado = df_utilizadores[
+            (df_utilizadores["role"].str.lower() == "student") &
+            (df_utilizadores["courseid"] == course_id) &
+            (df_utilizadores["groupname"].fillna("").str.strip().str.lower().str.contains("aval"))
+        ]
 
-def get_valores_martelados_horas_pos():
-    return [2, 4, 7, 3, 1] 
+        total_alunos = len(df_filtrado)
 
-def get_valores_martelados_expectativa():
-    return [4, 6, 12, 6] 
+        return f"{total_respostas} respostas de {total_alunos} alunos"
+    
+    except Exception as e:
+        return "Erro ao obter dados reais"
 
-def get_valores_martelados_dificuldade():
-    return [5, 10, 13]  
 
-def get_valores_martelados_esforco():
-    return [8, 7, 13]  
+def get_valores_reais_horas_pos(item_id):
+    dados = qpos.pos_horas_dedicadas(item_id)
 
-def get_valores_martelados_abrangencia():
-    return [4, 9, 15]
+    ordem_desejada = [
+        "Menos de 2h",
+        "Entre 2h a 5h",
+        "Entre 5h a 10h",
+        "Mais de 10h"
+    ]
 
-def get_valores_martelados_sincrona():
-    return [10, 6, 8, 4]
+    contagem = {cat: 0 for cat in ordem_desejada}
+
+    for _, _, categoria, total in dados:
+        contagem[categoria] += total
+
+    return contagem
+
+def get_valores_reais_expectativa(item_id):
+    dados = qpos.pos_expectativa_desempenho(item_id)
+
+    ordem_desejada = [
+        "Expectativa elevada",
+        "Expectativa moderada",
+        "Expectativa positiva",
+        "Expectativa muito baixa"
+    ]
+
+    contagem = {cat: 0 for cat in ordem_desejada}
+    for _, _, categoria, total in dados:
+        contagem[categoria] += total
+
+    return contagem
+
+def get_valores_reais_dificuldade(item_id):
+    dados = qpos.pos_dificuldade_efolio(item_id)
+
+    ordem_desejada = [
+        "Difícil",
+        "Fácil",
+        "Moderado"
+    ]
+
+    contagem = {cat: 0 for cat in ordem_desejada}
+    for _, _, categoria, total in dados:
+        contagem[categoria] += total
+
+    return contagem
+
+def get_valores_reais_esforco(item_id):
+    dados = qpos.pos_esforco_investido(item_id)
+
+    ordem_desejada = [
+        "Esforço razoável",
+        "Esforço insuficiente",
+        "Esforço máximo"
+    ]
+
+    contagem = {cat: 0 for cat in ordem_desejada}
+    for _, _, categoria, total in dados:
+        contagem[categoria] += total
+
+    return contagem
+
+def get_valores_reais_abrangencia(item_id):
+    dados = qpos.pos_recursos_qualidade(item_id)
+
+    ordem_desejada = [
+        "Não cobriram os tópicos",
+        "Parcialmente cobriram",
+        "Cobriram adequadamente"
+    ]
+
+    contagem = {cat: 0 for cat in ordem_desejada}
+    for _, _, categoria, total in dados:
+        contagem[categoria] += total
+
+    return contagem
+
+def get_valores_reais_sincrona(item_id):
+    dados = qpos.pos_sessao_sincrona_qualidade(item_id)
+
+    ordem_desejada = [
+        "Muito útil",
+        "Útil, mas com lacunas",
+        "Não existiu",
+        "Não foi útil"
+    ]
+
+    contagem = {cat: 0 for cat in ordem_desejada}
+    for _, _, categoria, total in dados:
+        contagem[categoria] += total
+
+    return contagem
+
 # =========================
 # Layout principal
 # =========================
 
 def layout():
-    valores_horas = get_valores_martelados_horas_pos() # ← martelado para já
-    valores_expectativa = get_valores_martelados_expectativa()
-    valores_dificuldade = get_valores_martelados_dificuldade()
-    valores_esforço = get_valores_martelados_esforco()
-    valores_abrangencia = get_valores_martelados_abrangencia()
-    valores_sincrona = get_valores_martelados_sincrona()
 
     return html.Div([
         html.Div([
@@ -119,25 +227,43 @@ def layout():
         ], className="dashboard-pre-dropdown-wrapper"),
 
         html.H2("Reflexão sobre a avaliação", className="dashboard-pre-subsecao"),
-        render_total_respostas_info_pos(),
+        html.Div(id="info_total_respostas_pos"),
 
         html.Div(className="dashboard-pre-row", children=[
             html.Div(className="dashboard-pre-card", children=[
                 html.H4("Nível de preparação", className="dashboard-pre-card-title"),
                 dcc.Graph(id="grafico_confianca_pos", config={"displayModeBar": False}, style={"height": "180px"})
             ]),
-            render_grafico_horas_pos(valores_horas)
+            html.Div(className="dashboard-pre-card", children=[
+                html.H4("Nº de horas dedicadas", className="dashboard-pre-card-title"),
+                dcc.Graph(id="grafico_horas_pos", config={"displayModeBar": False}, style={"height": "180px"})
+            ])
         ]),
         html.Div(className="dashboard-pre-row", children=[
-            render_grafico_expectativa(valores_expectativa),
-            render_grafico_dificuldade(valores_dificuldade),
-            render_grafico_esforco(valores_esforço)
+            html.Div(className="dashboard-pre-card", children=[
+                html.H4("Expectativa desempenho [Nota]", className="dashboard-pre-card-title"),
+                html.Div(id="grafico_expectativa")
+            ]),
+            html.Div(className="dashboard-pre-card", children=[
+                html.H4("Grau de dificuldade", className="dashboard-pre-card-title"),
+                html.Div(id="grafico_dificuldade")
+            ]),
+            html.Div(className="dashboard-pre-card", children=[
+                html.H4("Esforço investido", className="dashboard-pre-card-title"),
+                html.Div(id="grafico_esforco")
+            ])
         ]),
         html.Div("Qualidade dos recursos", className="dashboard-pre-subtitulo"),
 
         html.Div(className="dashboard-pre-row", children=[
-            render_grafico_abrangencia(valores_abrangencia),
-            render_grafico_sincrona(valores_sincrona)
+            html.Div(className="dashboard-pre-card", children=[
+                html.H4("Abrangência", className="dashboard-pre-card-title"),
+                html.Div(id="grafico_abrangencia")
+            ]),
+            html.Div(className="dashboard-pre-card", children=[
+                html.H4("Sessão Síncrona", className="dashboard-pre-card-title"),
+                html.Div(id="grafico_sincrona")
+            ])
         ])
     ])
 
@@ -150,9 +276,10 @@ def render_total_respostas_info_pos():
     texto = f"{total_respostas} respostas de {total_alunos} alunos"
     return html.P(texto, className="dashboard-pre-info-respostas")
 
-def render_grafico_horas_pos(valores):
-    categorias = ["Menos de 5h", "5 a 10h", "10 a 20h", "20 a 40h", "Mais de 40h"]
-    cores = ["#f9e79f", "#dcdcdc", "#2c7873", "#76d7c4", "#aed6f1"]
+def render_grafico_horas_pos(valores_dict):
+    categorias = ["Menos de 2h", "Entre 2h a 5h", "Entre 5h a 10h", "Mais de 10h"]
+    cores = ["#f7c59f", "#f9e79f", "#dcdcdc", "#aed6f1"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
 
     fig = go.Figure(go.Bar(
         x=valores,
@@ -165,25 +292,24 @@ def render_grafico_horas_pos(valores):
 
     fig.update_layout(
         margin=dict(l=10, r=10, t=20, b=10),
-        height=200,
+        height=180,
         paper_bgcolor="#f4faf4",
         plot_bgcolor="#f4faf4",
-        yaxis=dict(autorange="reversed")
+        yaxis=dict(autorange="reversed"),
+        font=dict(color="#2c3e50")
     )
 
-    return html.Div(className="dashboard-pre-card", children=[
-        html.H4("Nº de horas dedicadas", className="dashboard-pre-card-title"),
-        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "180px"})
-    ])
+    return fig
 
-def render_grafico_expectativa(valores):
+def render_grafico_expectativa(valores_dict):
     categorias = [
-        "Espera nota muito alta",
+        "Expectativa elevada",
         "Expectativa moderada",
-        "Confiante no geral",
-        "Espera nota baixa"
+        "Expectativa positiva",
+        "Expectativa muito baixa"
     ]
     cores = ["#90ee90", "#ffd700", "#87CEEB", "#f08080"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
 
     fig = px.pie(
         names=categorias,
@@ -191,6 +317,7 @@ def render_grafico_expectativa(valores):
         hole=0.4,
         color_discrete_sequence=cores
     )
+
     fig.update_layout(
         showlegend=False,
         margin=dict(t=20, b=0, l=20, r=20),
@@ -207,22 +334,19 @@ def render_grafico_expectativa(valores):
         ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
     ])
 
-    return html.Div(className="dashboard-pre-card", children=[
-        html.H4("Expectativa desempenho [Nota]", className="dashboard-pre-card-title"),
-        html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
             dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
             legenda
-        ])
     ])
 
-
-def render_grafico_dificuldade(valores):
+def render_grafico_dificuldade(valores_dict):
     categorias = [
-        "Difícil e desadequado",
-        "Fácil e confiante",
-        "Moderado, com esforço"
+        "Difícil",
+        "Fácil",
+        "Moderado"
     ]
     cores = ["#f08080", "#90ee90", "#ffd700"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
 
     fig = px.pie(
         names=categorias,
@@ -230,6 +354,7 @@ def render_grafico_dificuldade(valores):
         hole=0.4,
         color_discrete_sequence=cores
     )
+
     fig.update_layout(
         showlegend=False,
         margin=dict(t=20, b=0, l=20, r=20),
@@ -246,21 +371,20 @@ def render_grafico_dificuldade(valores):
         ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
     ])
 
-    return html.Div(className="dashboard-pre-card", children=[
-        html.H4("Grau de dificuldade", className="dashboard-pre-card-title"),
-        html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
-            dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
-            legenda
-        ])
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
+        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
+        legenda
     ])
 
-def render_grafico_esforco(valores):
+
+def render_grafico_esforco(valores_dict):
     categorias = [
         "Esforço razoável",
         "Esforço insuficiente",
-        "Esforço total"
+        "Esforço máximo"
     ]
     cores = ["#ffd700", "#f08080", "#90ee90"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
 
     fig = px.pie(
         names=categorias,
@@ -268,6 +392,7 @@ def render_grafico_esforco(valores):
         hole=0.4,
         color_discrete_sequence=cores
     )
+
     fig.update_layout(
         showlegend=False,
         margin=dict(t=20, b=0, l=20, r=20),
@@ -284,21 +409,20 @@ def render_grafico_esforco(valores):
         ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
     ])
 
-    return html.Div(className="dashboard-pre-card", children=[
-        html.H4("Esforço investido", className="dashboard-pre-card-title"),
-        html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
-            dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
-            legenda
-        ])
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
+        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
+        legenda
     ])
 
-def render_grafico_abrangencia(valores):
+
+def render_grafico_abrangencia(valores_dict):
     categorias = [
-        "Não cobre os temas",
-        "Parcial",
-        "Cobre bem os temas"
+        "Não cobriram os tópicos",
+        "Parcialmente cobriram",
+        "Cobriram adequadamente"
     ]
     cores = ["#f08080", "#ffd700", "#90ee90"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
 
     fig = px.pie(
         names=categorias,
@@ -306,6 +430,7 @@ def render_grafico_abrangencia(valores):
         hole=0.4,
         color_discrete_sequence=cores
     )
+
     fig.update_layout(
         showlegend=False,
         margin=dict(t=20, b=0, l=20, r=20),
@@ -322,22 +447,20 @@ def render_grafico_abrangencia(valores):
         ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
     ])
 
-    return html.Div(className="dashboard-pre-card", children=[
-        html.H4("Abrangência", className="dashboard-pre-card-title"),
-        html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
-            dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
-            legenda
-        ])
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
+        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
+        legenda
     ])
 
-def render_grafico_sincrona(valores):
+def render_grafico_sincrona(valores_dict):
     categorias = [
         "Muito útil",
-        "Útil, com lacunas",
+        "Útil, mas com lacunas",
         "Não existiu",
         "Não foi útil"
     ]
     cores = ["#90ee90", "#ffd700", "#d3d3d3", "#f08080"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
 
     fig = px.pie(
         names=categorias,
@@ -345,6 +468,7 @@ def render_grafico_sincrona(valores):
         hole=0.4,
         color_discrete_sequence=cores
     )
+
     fig.update_layout(
         showlegend=False,
         margin=dict(t=20, b=0, l=20, r=20),
@@ -361,10 +485,11 @@ def render_grafico_sincrona(valores):
         ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
     ])
 
-    return html.Div(className="dashboard-pre-card", children=[
-        html.H4("Sessão Síncrona", className="dashboard-pre-card-title"),
-        html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
-            dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
-            legenda
-        ])
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px"}, children=[
+        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "200px"}),
+        legenda
     ])
+
+def render_total_respostas_info_reais(item_id):
+    texto = get_total_respostas_info_reais(item_id)
+    return html.P(texto, className="dashboard-pre-info-respostas")
