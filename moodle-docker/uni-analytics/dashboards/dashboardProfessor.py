@@ -1,8 +1,7 @@
 from dash import html, dcc
 from dash_iconify import DashIconify
 import queries.queriesProfessor as qp
-import queries.queriesGeral as qg
-import queries.queriesAluno as qa
+import queries.queriesComuns as qg
 import plotly.graph_objects as go
 import plotly.express as px
 import traceback
@@ -10,9 +9,8 @@ import pandas as pd
 import re
 import unicodedata
 from datetime import datetime
-from collections import defaultdict # para contagem de acessos semanais
+from collections import defaultdict 
 
-from dashboards.dashboardGeral import layout as layout_geral
 
 # =========================
 # Funções de lógica modular
@@ -90,7 +88,7 @@ def calcular_velocidade_resposta(posts, professor_id, course_id):
         # Procurar respostas diretas feitas por professor
         respostas_professor = [
             p for p in posts_curso
-            if p.get("parent") == post_id and "teacher" in (p.get("role") or "").lower()
+            if p.get("parent") == post_id and p["userid"] == professor_id
         ]
 
         if respostas_professor:
@@ -467,7 +465,7 @@ def layout(professor_id, course_id):
         media_acessos = calcular_media_acessos_semanal(dados_acessos, professor_id, course_id)
         ultimo_acesso = obter_ultimo_acesso_uc(dados_acessos, professor_id, course_id)
 
-        dados_completions = qa.fetch_all_completions()
+        dados_completions = qg.fetch_all_completions()
         dados_medias = calcular_medias_efolios(dados_completions, dados_cursos, course_id)
         distribuicao = calcular_distribuicao_desempenho_global_professor(dados_completions, dados_cursos, course_id)
 

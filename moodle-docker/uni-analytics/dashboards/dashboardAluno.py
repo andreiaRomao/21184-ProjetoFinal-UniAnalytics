@@ -2,11 +2,10 @@ from dash import html, dcc
 from dash_iconify import DashIconify
 import plotly.graph_objects as go
 import queries.queriesAluno as qa
-import queries.queriesGeral as qg
+import queries.queriesComuns as qg
 import traceback
 import re
 
-from dashboards.dashboardGeral import layout as layout_geral
 
 # =========================
 # Funções de lógica modular
@@ -183,7 +182,7 @@ def obter_progresso_avaliacao(dados_completions, aluno_id, course_id, grupo_alun
 
 def layout(aluno_id, course_id):
     try:
-        dados_completions = qa.fetch_all_completions()
+        dados_completions = qg.fetch_all_completions()
         dados_forum = qg.fetch_all_forum_posts()
         dados_interacoes = qa.fetch_all_interacoes()
 

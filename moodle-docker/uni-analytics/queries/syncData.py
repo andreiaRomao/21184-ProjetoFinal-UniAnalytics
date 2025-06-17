@@ -1,8 +1,9 @@
 from datetime import datetime
 from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
-from queries.queriesAluno import fetch_all_interacoes, fetch_all_completions
-from queries.queriesGeral import fetch_all_forum_posts, fetch_all_efolios
+from queries.queriesAluno import fetch_all_interacoes
+from queries.queriesComuns import fetch_all_forum_posts , fetch_all_completions
+from queries.formsComuns import fetch_all_efolios
 
 # Função para sincronizar os dados dos fóruns
 def sync_forum_data():

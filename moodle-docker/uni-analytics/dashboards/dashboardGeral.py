@@ -2,8 +2,7 @@ from dash import html, dcc, Input, Output, State
 from dash_iconify import DashIconify
 import plotly.express as px
 import pandas as pd
-import queries.queriesGeral as qg
-import queries.queriesAluno as qa
+import queries.queriesComuns as qg
 import traceback
 import re
 
@@ -195,7 +194,7 @@ def obter_opcoes_dropdown_cursos():
 
 def layout(userid, course_id):
     try:
-        dados_completions = pd.DataFrame(qa.fetch_all_completions())
+        dados_completions = pd.DataFrame(qg.fetch_all_completions())
         dados_cursos = pd.DataFrame(qg.fetch_user_course_data())
         linhas_por_ano, pie_por_ano, inscritos_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
 

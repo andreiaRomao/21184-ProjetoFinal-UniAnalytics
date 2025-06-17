@@ -3,9 +3,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
-import queries.queriesGeral as qg
+import queries.queriesComuns as qg
 import queries.formsPre as qpre
-import queries.formsGeral as qfgeral
+import queries.formsComuns as qfcomuns
 from utils.logger import logger
 
 
@@ -32,7 +32,7 @@ def register_callbacks(app):
         valores_assert = get_valores_reais_assertividade(item_id)
         valores_ativ = get_valores_reais_atividades(item_id)
         return (
-            gerar_grafico_confianca_pre(item_id), 
+            render_grafico_confianca_pre(item_id), 
             render_grafico_horas_preparacao(valores_horas),
             render_grafico_acessibilidade(valores_aces),
             render_grafico_recursos(valores_assert),
@@ -40,12 +40,11 @@ def register_callbacks(app):
             render_total_respostas_info_reais(item_id)
         )
 
-
 def obter_opcoes_dropdown_pre():
     try:
         logger.debug("[DASHBOARD_PRE] A carregar opções para dropdown_item")
 
-        resultados = qg.fetch_all_efolios()
+        resultados = qfcomuns.fetch_all_efolios()
         logger.debug(f"[DASHBOARD_PRE] Resultados fetch_all_efolios: {resultados}")
 
         df = pd.DataFrame(resultados)
@@ -73,7 +72,7 @@ def obter_opcoes_dropdown_pre():
 def get_total_respostas_info_reais(item_id):
     try:
         # Obtemos o course_id e o total de respostas do forms
-        course_id, total_respostas = qfgeral.pre_pos_obter_course_id_e_total_respostas(item_id)
+        course_id, total_respostas = qfcomuns.pre_pos_obter_course_id_e_total_respostas(item_id)
         if not course_id:
             return "Curso não encontrado."
 
@@ -93,28 +92,6 @@ def get_total_respostas_info_reais(item_id):
     
     except Exception as e:
         return "Erro ao obter dados reais"
-
-
-def gerar_grafico_confianca_pre(item_id):
-    dados = qpre.pre_confianca_preparacao(item_id)
-
-    df = pd.DataFrame(dados, columns=["item_id", "item_name", "categoria_preparacao", "total_respostas"])
-
-    fig = px.pie(
-        df,
-        names="categoria_preparacao",
-        values="total_respostas",
-        hole=0.4,
-        color_discrete_sequence=["#f08080", "#ffd700", "#90ee90"]
-    )
-    fig.update_layout(
-        margin=dict(t=20, b=20, l=20, r=20),
-        paper_bgcolor="#f4faf4",
-        plot_bgcolor="#f4faf4",
-        font=dict(color="#2c3e50")
-    )
-    return fig
-
 
 def get_valores_reais_horas(item_id):
     ordem_desejada = ["< 5h", "5 a 10h", "10 a 20h", "20 a 40h", "> 40h"]
@@ -225,13 +202,73 @@ def layout():
 # Componentes visuais
 # =========================
 
-def render_grafico_horas_preparacao(valores_dict):
-    ordem_desejada = ["< 5h", "5 a 10h", "10 a 20h", "20 a 40h", "> 40h"]
-    cores = ["#f9e79f", "#dcdcdc", "#2c7873", "#76d7c4", "#aed6f1"]
+def render_grafico_confianca_pre(item_id):
+    dados = qpre.pre_confianca_preparacao(item_id)
 
-    categorias = ordem_desejada
+    df = pd.DataFrame(dados, columns=["item_id", "item_name", "categoria_preparacao", "total_respostas"])
+
+    if df.empty or df["total_respostas"].sum() == 0:
+        fig = go.Figure()
+        fig.update_layout(
+            annotations=[
+                dict(
+                    text="Sem dados suficientes para gerar o gráfico.",
+                    xref="paper", yref="paper",
+                    x=0.5, y=0.5,
+                    showarrow=False,
+                    font=dict(size=14, color="#2c3e50")
+                )
+            ],
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            paper_bgcolor="#f4faf4",
+            plot_bgcolor="#f4faf4",
+            margin=dict(l=10, r=10, t=20, b=10)
+        )
+        return fig
+
+    fig = px.pie(
+        df,
+        names="categoria_preparacao",
+        values="total_respostas",
+        hole=0.4,
+        color_discrete_sequence=["#f08080", "#ffd700", "#90ee90"]
+    )
+    fig.update_layout(
+        margin=dict(t=20, b=20, l=20, r=20),
+        paper_bgcolor="#f4faf4",
+        plot_bgcolor="#f4faf4",
+        font=dict(color="#2c3e50")
+    )
+    return fig
+
+def render_grafico_horas_preparacao(valores_dict):
+    categorias = ["< 5h", "5 a 10h", "10 a 20h", "20 a 40h", "> 40h"]
+    cores = ["#f7c59f", "#f9e79f", "#dcdcdc", "#aed6f1", "#76d7c4"]
     valores = [valores_dict.get(cat, 0) for cat in categorias]
 
+    # Se todos os valores forem 0, mostrar mensagem dentro do gráfico
+    if all(val == 0 for val in valores):
+        fig = go.Figure()
+        fig.update_layout(
+            annotations=[
+                dict(
+                    text="Sem dados suficientes para gerar o gráfico.",
+                    xref="paper", yref="paper",
+                    x=0.5, y=0.5,
+                    showarrow=False,
+                    font=dict(size=14, color="#2c3e50")
+                )
+            ],
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            paper_bgcolor="#f4faf4",
+            plot_bgcolor="#f4faf4",
+            height=180
+        )
+        return fig
+
+    # Caso normal
     fig = go.Figure(go.Bar(
         x=valores,
         y=categorias,
@@ -258,8 +295,16 @@ def render_grafico_acessibilidade(valores_dict):
         "Acessíveis, mas estrutura confusa",
         "Pouco acessíveis e desorganizados"
     ]
-    valores = [valores_dict.get(cat, 0) for cat in categorias]
     cores = ["#90ee90", "#ffd700", "#f08080"]
+
+    # Filtrar tudo baseado nos índices das categorias com valor > 0
+    indices_validos = [i for i, cat in enumerate(categorias) if valores_dict.get(cat, 0) > 0]
+    categorias = [categorias[i] for i in indices_validos]
+    valores = [valores_dict[categorias[i]] for i in range(len(categorias))]
+    cores = [cores[i] for i in indices_validos]
+
+    if not categorias:
+        return html.Div("Sem dados suficientes para gerar o gráfico.", style={"textAlign": "center", "padding": "20px"})
 
     fig = px.pie(
         names=categorias,
@@ -283,7 +328,7 @@ def render_grafico_acessibilidade(valores_dict):
         ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
     ])
 
-    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px", "minHeight": "300px" }, children=[
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px", "minHeight": "300px"}, children=[
         dcc.Graph(figure=fig, config={"displayModeBar": False}),
         legenda
     ])
@@ -296,7 +341,15 @@ def render_grafico_recursos(valores_dict):
         "Pouco úteis - Necessitam revisao"
     ]
     cores = ["#d3d3d3", "#ffe066", "#8cd17d", "#ffb3b3"]
-    valores = [valores_dict.get(cat, 0) for cat in categorias]
+
+    # Filtrar tudo baseado nos índices das categorias com valor > 0
+    indices_validos = [i for i, cat in enumerate(categorias) if valores_dict.get(cat, 0) > 0]
+    categorias = [categorias[i] for i in indices_validos]
+    valores = [valores_dict[categorias[i]] for i in range(len(categorias))]
+    cores = [cores[i] for i in indices_validos]
+
+    if not categorias:
+        return html.Div("Sem dados suficientes para gerar o gráfico.", style={"textAlign": "center", "padding": "20px"})
 
     fig = px.pie(
         names=categorias,
@@ -334,7 +387,15 @@ def render_grafico_atividades(valores_dict):
         "Não realizou"
     ]
     cores = ["#f7c59f", "#ffeb99", "#90ee90", "#ff9999", "#d3d3d3"]
-    valores = [valores_dict.get(cat, 0) for cat in categorias]
+
+    # Filtrar tudo baseado nos índices das categorias com valor > 0
+    indices_validos = [i for i, cat in enumerate(categorias) if valores_dict.get(cat, 0) > 0]
+    categorias = [categorias[i] for i in indices_validos]
+    valores = [valores_dict[categorias[i]] for i in range(len(categorias))]
+    cores = [cores[i] for i in indices_validos]
+
+    if not categorias:
+        return html.Div("Sem dados suficientes para gerar o gráfico.", style={"textAlign": "center", "padding": "20px"})
 
     fig = px.pie(
         names=categorias,
@@ -342,6 +403,7 @@ def render_grafico_atividades(valores_dict):
         hole=0.4,
         color_discrete_sequence=cores
     )
+
     fig.update_layout(
         showlegend=False,
         margin=dict(t=20, b=0, l=20, r=20),
