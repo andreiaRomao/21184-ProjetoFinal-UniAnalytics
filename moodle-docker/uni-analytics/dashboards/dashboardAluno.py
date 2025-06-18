@@ -106,7 +106,7 @@ def calcular_desempenho_etl(dados, aluno_id, course_id):
 def contar_topicos_criados(dados, aluno_id, course_id):
     return sum(
         1 for d in dados
-        if d['userid'] == aluno_id
+        if d['user_id'] == aluno_id
         and d['course_id'] == course_id
         and d['post_type'] == 'topic'
     )
@@ -114,7 +114,7 @@ def contar_topicos_criados(dados, aluno_id, course_id):
 def contar_respostas(dados, aluno_id, course_id):
     return sum(
         1 for d in dados
-        if d['userid'] == aluno_id
+        if d['user_id'] == aluno_id
         and d['course_id'] == course_id
         and d['post_type'] == 'reply'
     )
@@ -183,7 +183,7 @@ def obter_progresso_avaliacao(dados_completions, aluno_id, course_id, grupo_alun
 def layout(aluno_id, course_id):
     try:
         dados_completions = qg.fetch_all_completions()
-        dados_forum = qg.fetch_all_forum_posts()
+        dados_forum = qg.fetch_all_forum_posts_local()
         dados_interacoes = qa.fetch_all_interacoes()
 
         grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)

@@ -1,6 +1,8 @@
 import pandas as pd
 from db.moodleConnection import connect_to_moodle_db
+from db.uniAnalytics import connect_to_uni_analytics_db
 
+################### Moodle Queries ###################
 def fetch_user_course_data():
     conn = connect_to_moodle_db()
     query = """
@@ -35,14 +37,14 @@ def fetch_all_forum_posts():
     conn = connect_to_moodle_db()
     query = """
         SELECT
-            u.id AS userid,
+            u.id AS user_id,
             u.firstname,
             u.lastname,
             COALESCE(r.shortname, 'none') AS role,
             f.course AS course_id,
             p.id AS post_id,
             p.parent AS parent,
-            p.created AS timecreated,
+            p.created AS time_created,
             CASE
                 WHEN p.parent = 0 THEN 'topic'
                 ELSE 'reply'
@@ -116,3 +118,18 @@ def fetch_all_completions():
         print("Erro ao obter completions globais:", e)
         conn.close()
         return []        
+    
+################### Local Queries ###################
+def fetch_all_forum_posts_local():
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT post_id, user_id, role, course_id, post_type, parent, time_created
+        FROM forum
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Converter para lista de dicionários
+    colunas = ["post_id", "user_id", "role", "course_id", "post_type", "parent", "time_created"]
+    return [dict(zip(colunas, row)) for row in rows]

@@ -63,8 +63,8 @@ def contar_conteudos_publicados(dados, professor_id, course_id):
     return contagem
 
 def contar_topicos_respostas_professor(dados, professor_id, course_id):
-    criados = sum(1 for d in dados if d['userid'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'topic')
-    respondidos = sum(1 for d in dados if d['userid'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'reply')
+    criados = sum(1 for d in dados if d['user_id'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'topic')
+    respondidos = sum(1 for d in dados if d['user_id'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'reply')
     return criados, respondidos
 
 def calcular_velocidade_resposta(posts, professor_id, course_id):  
@@ -83,17 +83,17 @@ def calcular_velocidade_resposta(posts, professor_id, course_id):
 
     for post_aluno in posts_aluno:
         post_id = post_aluno["post_id"]
-        tempo_post = datetime.fromtimestamp(post_aluno["timecreated"])
+        tempo_post = datetime.fromtimestamp(post_aluno["time_created"])
 
         # Procurar respostas diretas feitas por professor
         respostas_professor = [
             p for p in posts_curso
-            if p.get("parent") == post_id and p["userid"] == professor_id
+            if p.get("parent") == post_id and p["user_id"] == professor_id
         ]
 
         if respostas_professor:
-            resposta = min(respostas_professor, key=lambda p: p["timecreated"])
-            tempo_resposta = datetime.fromtimestamp(resposta["timecreated"])
+            resposta = min(respostas_professor, key=lambda p: p["time_created"])
+            tempo_resposta = datetime.fromtimestamp(resposta["time_created"])
             delta_dias = (tempo_resposta - tempo_post).total_seconds() / (3600 * 24)
             tempos_resposta.append(delta_dias)
 
@@ -365,13 +365,13 @@ def calcular_taxa_conclusao_formativas(completions, cursos, course_id):
 def calcular_ultima_participacao_forum(posts, professor_id, course_id):
     posts_professor = [
         p for p in posts
-        if p["userid"] == professor_id and p["course_id"] == course_id
+        if p["user_id"] == professor_id and p["course_id"] == course_id
     ]
     if not posts_professor:
         return "—"
 
-    mais_recente = max(posts_professor, key=lambda p: p["timecreated"])
-    dt = datetime.fromtimestamp(mais_recente["timecreated"])
+    mais_recente = max(posts_professor, key=lambda p: p["time_created"])
+    dt = datetime.fromtimestamp(mais_recente["time_created"])
     return dt.strftime("%d/%m/%Y %H:%M")
 
 def gerar_barra_conclusao(label, valor):
@@ -454,7 +454,7 @@ def layout(professor_id, course_id):
         dados_conteudos = qp.fetch_conteudos_disponibilizados()
         contagem = contar_conteudos_publicados(dados_conteudos, professor_id, course_id)
 
-        dados_forum = qg.fetch_all_forum_posts()
+        dados_forum = qg.fetch_all_forum_posts_local()
         dados_cursos = qg.fetch_user_course_data() 
 
         topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, professor_id, course_id)

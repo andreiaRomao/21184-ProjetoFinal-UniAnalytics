@@ -54,13 +54,14 @@ def init_uni_analytics_db():
     # Tabela de dados de participação em fóruns
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS forum (
-            userid INTEGER NOT NULL,
+            post_id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
             role TEXT NOT NULL,
             course_id INTEGER NOT NULL,
             post_type TEXT NOT NULL,
             parent INTEGER NOT NULL,
-            timecreated DATETIME NOT NULL,
-            lastrefreshdatetime DATETIME
+            time_created DATETIME NOT NULL,
+            time_updated DATETIME
         );
     """)
 

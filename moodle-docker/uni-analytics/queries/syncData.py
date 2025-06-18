@@ -1,9 +1,9 @@
 from datetime import datetime
 from db.uniAnalytics import connect_to_uni_analytics_db
 from utils.logger import logger
-from queries.queriesAluno import fetch_all_interacoes
-from queries.queriesComuns import fetch_all_forum_posts , fetch_all_completions
-from queries.formsComuns import fetch_all_efolios
+from queries.queriesAluno import *
+from queries.queriesComuns import *
+from queries.formsComuns import *
 
 # Função para sincronizar os dados dos fóruns
 def sync_forum_data():
@@ -22,20 +22,21 @@ def sync_forum_data():
 
         for row in dados:
             try:
-                logger.debug(f"[SYNC][FORUM] Inserir: userid={row['userid']}, role={row['role']}, course_id={row['course_id']}, post_type={row['post_type']}, timecreated={row['timecreated']}")
+                logger.debug(f"[SYNC][FORUM] Inserir: user_id={row['user_id']}, role={row['role']}, course_id={row['course_id']}, post_type={row['post_type']}, time_created={row['time_created']}")
                 cursor_local.execute("""
                     INSERT INTO forum (
-                        userid, role, course_id, post_type, parent, timecreated, lastrefreshdatetime
+                        post_id, user_id, role, course_id, post_type, parent, time_created, time_updated
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    row["userid"],
+                    row["post_id"],
+                    row["user_id"],
                     row["role"],
                     row["course_id"],
                     row["post_type"],
-                     row["parent"],                   
-                    row["timecreated"],
-                    now
+                    row["parent"],                   
+                    row["time_created"],
+                    now # last_updated
                 ))
                 inseridos += 1
             except Exception as item_error:
@@ -47,7 +48,6 @@ def sync_forum_data():
         logger.info(f"[SYNC] Forum sincronizado com {inseridos} registos. Ignorados: {ignorados}.")
     except Exception as e:
         logger.exception(f"[SYNC] Erro ao sincronizar dados de forum: {str(e)}")
-
 
 # Função para sincronizar os dados de interações
 def sync_interacao_data():
@@ -89,7 +89,6 @@ def sync_interacao_data():
         logger.info(f"[SYNC] Interações sincronizadas com {inseridos} registos. Ignorados: {ignorados}.")
     except Exception as e:
         logger.exception(f"[SYNC] Erro ao sincronizar dados de interações: {str(e)}")
-
 
 # Função para sincronizar os dados de progresso e notas
 def sync_grade_progress_data():
@@ -144,7 +143,6 @@ def sync_grade_progress_data():
         logger.info(f"[SYNC] Grade progress sincronizado com {inseridos} registos. Ignorados: {ignorados}.")
     except Exception as e:
         logger.exception(f"[SYNC] Erro ao sincronizar dados de grade_progress: {str(e)}")
-
 
 def sync_efolios_data():
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
