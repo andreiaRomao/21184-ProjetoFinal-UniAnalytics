@@ -1,15 +1,16 @@
 import pandas as pd
 from db.moodleConnection import connect_to_moodle_db
+from db.uniAnalytics import connect_to_uni_analytics_db
 
-
+################### Moodle Queries ###################
+# Função para obter dados de Moodle das interações
 def fetch_all_interacoes():
-    from db.moodleConnection import connect_to_moodle_db
     conn = connect_to_moodle_db()
     query = """
         SELECT
-          l.userid,
-          l.courseid,
-          l.timecreated,
+          l.userid as user_id,
+          l.courseid as course_id,
+          l.timecreated as time_created,
           CASE
             WHEN l.eventname LIKE '%mod_resource%' THEN 'Ficheiros'
             WHEN l.eventname LIKE '%mod_page%'     THEN 'Páginas'
@@ -49,3 +50,19 @@ def fetch_all_interacoes():
         print("Erro ao obter dados das interações:", e)
         conn.close()
         return []
+
+################### Local Queries ###################
+# Função para obter dados locais de interações de Moodle
+def fetch_all_interacoes_local():
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT user_id, course_id, time_created, tipo_interacao, time_updated
+        FROM interacao
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Converter para lista de dicionários
+    colunas = ["user_id", "course_id", "time_created", "tipo_interacao", "time_updated"]
+    return [dict(zip(colunas, row)) for row in rows]

@@ -127,7 +127,7 @@ def contar_interacoes_aluno(dados, aluno_id, course_id):
     contagem = {tipo: 0 for tipo in tipos}
 
     for d in dados:
-        if d['userid'] == aluno_id and d['courseid'] == course_id:
+        if d['user_id'] == aluno_id and d['course_id'] == course_id:
             tipo = d.get('tipo_interacao')
 
             if tipo in contagem:
@@ -184,7 +184,7 @@ def layout(aluno_id, course_id):
     try:
         dados_completions = qg.fetch_all_completions()
         dados_forum = qg.fetch_all_forum_posts_local()
-        dados_interacoes = qa.fetch_all_interacoes()
+        dados_interacoes = qa.fetch_all_interacoes_local()
 
         grupo_aluno = obter_grupo_aluno(dados_completions, aluno_id, course_id)
         assigns_validos = obter_assigns_validos(dados_completions, course_id, grupo_aluno)

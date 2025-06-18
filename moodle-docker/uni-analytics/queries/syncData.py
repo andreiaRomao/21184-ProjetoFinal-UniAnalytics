@@ -66,17 +66,17 @@ def sync_interacao_data():
 
         for row in dados:
             try:
-                logger.debug(f"[SYNC][INTERACAO] Inserir: userid={row['userid']}, course_id={row['courseid']}, tipo_interacao={row['tipo_interacao']}, timecreated={row['timecreated']}")
+                logger.debug(f"[SYNC][INTERACAO] Inserir: user_id={row['user_id']}, course_id={row['course_id']}, tipo_interacao={row['tipo_interacao']}, time_created={row['time_created']}")
                 cursor_local.execute("""
                     INSERT INTO interacao (
-                        userid, course_id, tipo_interacao, timecreated, lastrefreshdatetime
+                        user_id, course_id, tipo_interacao, time_created, time_updated
                     )
                     VALUES (?, ?, ?, ?, ?)
                 """, (
-                    row["userid"],
-                    row["courseid"],
+                    row["user_id"],
+                    row["course_id"],
                     row["tipo_interacao"],
-                    row["timecreated"],
+                    row["time_created"],
                     now
                 ))
                 inseridos += 1
@@ -143,10 +143,6 @@ def sync_grade_progress_data():
         logger.info(f"[SYNC] Grade progress sincronizado com {inseridos} registos. Ignorados: {ignorados}.")
     except Exception as e:
         logger.exception(f"[SYNC] Erro ao sincronizar dados de grade_progress: {str(e)}")
-
-
-# Função para sincronizar os e-fólios
-from datetime import datetime
 
 # Função para sincronizar os dados dos e-fólios
 def sync_efolios_data():
