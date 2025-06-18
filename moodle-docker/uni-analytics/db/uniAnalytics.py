@@ -116,7 +116,9 @@ def init_uni_analytics_db():
             start_date DATETIME NOT NULL,
             end_date DATETIME NOT NULL,
             available_pre INTEGER DEFAULT 0,
-            available_pos INTEGER DEFAULT 0
+            available_pos INTEGER DEFAULT 0,
+            time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+            time_updated DATETIME DEFAULT CURRENT_TIMESTAMP           
         );
     """)
 

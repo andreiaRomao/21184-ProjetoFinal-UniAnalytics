@@ -144,6 +144,11 @@ def sync_grade_progress_data():
     except Exception as e:
         logger.exception(f"[SYNC] Erro ao sincronizar dados de grade_progress: {str(e)}")
 
+
+# Função para sincronizar os e-fólios
+from datetime import datetime
+
+# Função para sincronizar os dados dos e-fólios
 def sync_efolios_data():
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -163,20 +168,25 @@ def sync_efolios_data():
                 logger.debug(
                     f"[SYNC][EFOLIOS] Inserir: item_id={row['item_id']}, "
                     f"name={row['name']}, course_id={row['course_id']}, "
-                    f"course_name={row['course_name']}, start={row['start_date']}, end={row['end_date']}"
+                    f"course_name={row['course_name']}, start={row['start_date']}, end={row['end_date']}, created={row['time_created']}"
                 )
                 cursor_local.execute("""
                     INSERT INTO efolios (
-                        item_id, name, course_id, course_name, start_date, end_date
+                        item_id, name, course_id, course_name, start_date, end_date,
+                        available_pre, available_pos, time_created, time_updated
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     row["item_id"],
                     row["name"],
                     row["course_id"],
                     row["course_name"],
                     row["start_date"],
-                    row["end_date"]
+                    row["end_date"],
+                    0,  # available_pre
+                    0,  # available_pos
+                    row["time_created"],  # time_created da origem
+                    now  # time_updated no momento da sincronização
                 ))
                 inseridos += 1
             except Exception as item_error:

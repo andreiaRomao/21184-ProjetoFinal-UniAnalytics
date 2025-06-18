@@ -51,11 +51,12 @@ def obter_opcoes_dropdown_pos():
     try:
         logger.debug("[DASHBOARD_POS] A carregar opções para dropdown_item_pos")
 
-        resultados = qfcomuns.fetch_all_efolios()
+        resultados = qfcomuns.fetch_all_efolios_local()
         logger.debug(f"[DASHBOARD_POS] Resultados fetch_all_efolios: {resultados}")
 
         df = pd.DataFrame(resultados)
         df['start_date'] = pd.to_datetime(df['start_date'])
+        df['end_date'] = pd.to_datetime(df['end_date'])
         df['ano_letivo'] = df['start_date'].dt.year
         ano_mais_recente = df['ano_letivo'].max()
 

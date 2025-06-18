@@ -32,6 +32,7 @@ def fetch_user_course_data():
     conn.close()
     return df
 
+# Função para obter dados do Moodle dos fóruns
 def fetch_all_forum_posts():
     from db.moodleConnection import connect_to_moodle_db
     conn = connect_to_moodle_db()
@@ -120,6 +121,7 @@ def fetch_all_completions():
         return []        
     
 ################### Local Queries ###################
+# Função para obter dados locais de fóruns de Moodle
 def fetch_all_forum_posts_local():
     conn = connect_to_uni_analytics_db()
     cursor = conn.cursor()
