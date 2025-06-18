@@ -428,7 +428,7 @@ body {
    FORMULÁRIOS (PERGUNTAS)
    =============================== */
 .pergunta-card {
-    background-color: #d6eea9;
+    background-color: #dcf1dc;
     border-radius: 16px;
     padding: 20px;
     max-width: 100%;
@@ -457,45 +457,6 @@ body {
 .pergunta-opcao:hover {
     background-color: #a1c97d;
     border: 1px solid #7aa95b;
-}
-
-/* Força o Dropdown a mostrar todas as opções de resposta */
-.Select-menu-outer {
-    max-height: none !important;
-}
-
-/* ===============================
-   BOTÕES DE NAVEGAÇÃO ENTRE PERGUNTAS
-   =============================== */
-.btn-nav {
-    font-weight: bold;
-    padding: 10px 22px;
-    border-radius: 20px;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    margin-right: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-back {
-    background-color: #fdd762;
-    color: #222;
-}
-
-.btn-next {
-    background-color: #20c997;
-    color: white;
-}
-
-.btn-nav:hover {
-    opacity: 0.9;
-}
-
-.btn-nav i {
-    margin-left: 8px;
 }
 
 /* ===============================
@@ -702,19 +663,6 @@ textarea::placeholder {
   width:90%; 
 }
 
-.linha-3-blocos {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-  gap: 20px;
-  max-width: 1200px;
-  padding: 30px;
-  margin: 0 auto;
-  background-color: #f4faf4;
-  box-sizing: border-box;
-}
-
 .card-bloco {
   background-color: #ffffff;
   border-radius: 20px;
@@ -769,21 +717,6 @@ textarea::placeholder {
   max-width: 1000px;     
   margin: 0 auto;
   background-color: #f4faf4;
-}
-
-/* Está a ser usado? */
-.card-bloco-altura-maior {
-  min-height: 500px; 
-  max-width: 800px;  
-  width: 100%;
-}
-
-.card-bloco-conclusao {
-  max-width: 1000px;
-  width: 100%;
-  padding: 20px 30px 10px 30px;  
-  box-sizing: border-box;
-  margin-bottom: 0px;
 }
 
 .bloco-conclusao-linha {
@@ -983,7 +916,6 @@ textarea::placeholder {
   font-size: 18px;
   font-weight: bold;
 }
-
 
 .dropdown-curso {
   display: flex;
@@ -1212,7 +1144,7 @@ textarea::placeholder {
 
 /* ===============================
    DashBoard PRE
-   =============================== */
+  =============================== */
 .dashboard-pre-titulo {
   text-align: center;
   font-size: 28px;
@@ -1346,4 +1278,228 @@ textarea::placeholder {
   height: 12px;
   margin-right: 6px;
   border-radius: 3px;
+}
+
+/* ===============================
+  FORMULÁRIOS
+  =============================== */
+
+.formulario-wrapper {
+    background-color: #f4faf4;
+    min-height: 90vh;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-left: 100px; 
+}
+
+.formulario-card {
+    background-color: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    padding: 30px 40px;
+    width: 100%;
+    max-width: 90%;
+    box-sizing: border-box;
+    margin-top: 30px; 
+}
+
+.formulario-titulo {
+    font-size: 28px;
+    font-weight: bold;
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.barra-progresso-formulario {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.mensagem-final-sucesso {
+    background-color: #a4dfc1;
+    color: #1a3c29;
+    padding: 16px 20px;
+    border-radius: 16px;
+    text-align: center;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* ===============================
+  DROPDOWN DE PERGUNTAS
+  =============================== */
+
+.pergunta-opcao .Select-control {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    min-height: auto;
+    height: auto;
+    background-color: #ffffff;
+    border: 2px solid #80cfa9;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.Select-option {
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.Select-option.is-focused {
+    background-color: #e6f9e6;
+}
+
+.Select-option.is-selected {
+    background-color: #c2f0d2;
+    font-weight: bold;
+}
+
+.pergunta-opcao .Select-value-label {
+    white-space: normal;
+    word-wrap: break-word;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-right: 80px;
+}
+
+.pergunta-opcao .Select-value {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+}
+
+.pergunta-opcao .Select-control {
+    position: relative;
+}
+
+.pergunta-opcao .Select-menu-outer {
+    max-width: 100%;
+    border-radius: 10px;
+    z-index: 1000;
+    overflow: visible;
+    padding-bottom: 12px;
+}
+
+.pergunta-opcao .Select-clear-zone,
+.pergunta-opcao .Select-arrow-zone {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+
+.pergunta-opcao .Select-clear-zone {
+    right: 36px;
+}
+
+.pergunta-opcao .Select-arrow-zone {
+    right: 12px;
+    cursor: pointer;
+}
+
+/* RadioItems personalizados */
+.radio-dropdown input[type="radio"] {
+    margin-right: 10px;
+}
+
+.radio-dropdown label {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    cursor: pointer;
+    background-color: white;
+    font-size: 15px;
+    line-height: 1.5;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.radio-dropdown input[type="radio"]:checked + label {
+    background-color: #f4faf4;
+    border-color: #80cfa9;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* ===============================
+  MAIN LAYOUT
+  =============================== */
+
+.linha-flex {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 10px 30px 30px;
+  margin: 0 auto;
+  background-color: #f4faf4;
+}
+
+.coluna-esquerda, .coluna-direita {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+}
+
+.btn-suave {
+  background-color: #dcf1dc;
+  color: #1a3c29;
+  border: none;
+  padding: 8px 14px;  
+  border-radius: 8px;
+  font-size: 15px;  
+  text-align: left;
+  font-weight: normal;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  display: block;
+  margin-bottom: 6px; 
+}
+
+.btn-suave:hover {
+  background-color: #cdebcf;
+  border-color: #117a60;
+  color: #1b3f2d;
+}
+
+.home-bloco-titulo {
+  text-align: center;
+  font-weight: bold;
+  font-size: 22px;
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+.coluna-unica-central {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 0 30px;
+}
+
+.coluna-unica-central .card {
+    max-width: 600px;
+    width: 100%;
 }

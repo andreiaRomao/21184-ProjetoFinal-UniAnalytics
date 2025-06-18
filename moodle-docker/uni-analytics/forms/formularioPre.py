@@ -8,10 +8,10 @@ from utils.logger import logger
 # Layout da página de formulário de Pré-Avaliação
 def layout(user_id, item_id):
     logger.info(f"[PRE] Aluno com ID {user_id} acedeu ao formulário de pré-avaliação para o item {item_id}")
-    return html.Div(className="dashboard-container", children=[
-        html.Div(className="card", children=[
+    return html.Div(className="formulario-wrapper", children=[
+        html.Div(className="formulario-card", children=[
             dcc.Interval(id="init-load-pre", interval=1, n_intervals=0, max_intervals=1),
-            html.H2("Pré-Avaliação", className="card-title"),
+            html.H2("Pré-Avaliação", className="formulario-titulo"),
 
             # Armazenamento no navegador do estado do formulário
             dcc.Store(id='etapa-pre', data=0),              # Etapa atual (0 = introdução)
@@ -112,15 +112,20 @@ def register_callbacks(app):
                 opcoes = []
 
             return html.Div([
+                html.Div(
+                    f"Pergunta {etapa} de {len(perguntas)}",
+                    className="barra-progresso-formulario"
+                ),
                 html.Label(pergunta_atual["texto"]),
-                dcc.Dropdown(
-                    id={"type": "resposta-pre", "index": etapa},
+                dcc.RadioItems(
+                    id={"type": "resposta-pos", "index": etapa},
                     options=opcoes,
-                    className="pergunta-opcao",
-                    placeholder="Seleciona uma opção",
-                    value=respostas.get(str(pergunta_id))
+                    value=respostas.get(str(pergunta_id)) if str(pergunta_id) in respostas else None,
+                    className="radio-dropdown",
+                    labelStyle={"display": "block"}
                 )
             ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}, {"display": "inline-block" if etapa > 1 else "none"}
+
 
         # Etapa de confirmação antes da submissão
         if etapa == len(perguntas) + 1:
@@ -132,7 +137,7 @@ def register_callbacks(app):
         # Mensagem final depois de submeter
         return html.Div(
             "Obrigado! As tuas respostas vão ser submetidas.",
-            className="pergunta-card"
+            className="mensagem-final-sucesso"
         ), {"display": "none"}, {"display": "none"}, {"display": "none"}
 
     # Callback unificado para avançar ou recuar entre perguntas

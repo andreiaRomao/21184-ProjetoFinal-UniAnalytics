@@ -8,10 +8,10 @@ from utils.logger import logger
 # Layout da página de formulário de Pós-Avaliação
 def layout(user_id, item_id):
     logger.info(f"[POS] Aluno com ID {user_id} acedeu ao formulário de pós-avaliação para o item {item_id}")
-    return html.Div(className="dashboard-container", children=[
-        html.Div(className="card", children=[
+    return html.Div(className="formulario-wrapper", children=[
+        html.Div(className="formulario-card", children=[
             dcc.Interval(id="init-load-pos", interval=1, n_intervals=0, max_intervals=1),
-            html.H2("Pós-Avaliação", className="card-title"),
+            html.H2("Pós-Avaliação", className="formulario-titulo"),
 
             dcc.Store(id='etapa-pos', data=0),          # Etapa atual (0 = introdução)
             dcc.Store(id='respostas-pos', data={}),     # Respostas dadas até ao momento
@@ -109,13 +109,17 @@ def register_callbacks(app):
                 opcoes = []
 
             return html.Div([
+                html.Div(
+                    f"Pergunta {etapa} de {len(perguntas)}",
+                    className="barra-progresso-formulario"
+                ),
                 html.Label(pergunta_atual["texto"]),
-                dcc.Dropdown(
+                dcc.RadioItems(
                     id={"type": "resposta-pos", "index": etapa},
                     options=opcoes,
-                    className="pergunta-opcao",
-                    placeholder="Seleciona uma opção",
-                    value=respostas.get(str(pergunta_id))
+                    value=respostas.get(str(pergunta_id)) if str(pergunta_id) in respostas else None,
+                    className="radio-dropdown",
+                    labelStyle={"display": "block"}
                 )
             ], className="pergunta-card"), {"display": "inline-block"}, {"display": "none"}, {"display": "inline-block" if etapa > 1 else "none"}
 
@@ -129,7 +133,7 @@ def register_callbacks(app):
         # Mensagem final depois de submeter
         return html.Div(
             "Obrigado! As tuas respostas vão ser submetidas.",
-            className="pergunta-card"
+            className="mensagem-final-sucesso"
         ), {"display": "none"}, {"display": "none"}, {"display": "none"}
 
     @app.callback(
