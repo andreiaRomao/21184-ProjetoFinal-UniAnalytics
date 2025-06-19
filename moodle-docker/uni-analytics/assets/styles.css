@@ -445,7 +445,7 @@ body {
 }
 
 .pergunta-opcao {
-    background-color: #b3d88f;
+    background-color: #dcf1dc;
     border-radius: 10px;
     padding: 12px;
     margin-bottom: 10px;
@@ -455,7 +455,7 @@ body {
 }
 
 .pergunta-opcao:hover {
-    background-color: #a1c97d;
+    background-color: #DBF6DB;
     border: 1px solid #7aa95b;
 }
 
@@ -1502,4 +1502,42 @@ textarea::placeholder {
 .coluna-unica-central .card {
     max-width: 600px;
     width: 100%;
+}
+
+/* ===============================
+  HOVER TOOLTIP
+  =============================== */
+.tooltip-bloco {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.tooltip-hover {
+    cursor: help;
+    position: relative;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    background-color: #b2e3d4;
+    color: #1a3c29;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    position: absolute;
+    z-index: 10;
+    width: 280px;
+    top: 120%;
+    left: 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    white-space: pre-wrap;
+}
+
+.tooltip-bloco:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
 }

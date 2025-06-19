@@ -392,10 +392,7 @@ def gerar_gauge_dashboard_professor(titulo, valor, cor):
         height=180
     )
 
-    return html.Div(className="dashboard-professor-gauge-card", children=[
-        html.H4(titulo, className="dashboard-professor-gauge-titulo"),
-        dcc.Graph(figure=fig, config={"displayModeBar": False})
-    ])
+    return dcc.Graph(figure=fig, config={"displayModeBar": False})
 
 # =========================
 # Layout principal
@@ -451,7 +448,7 @@ def layout(professor_id, course_id):
 
         html.Div(className="dashboard-professor-linha3colunas", children=[
             html.Div(className="dashboard-professor-coluna", children=[
-                render_card_forum(topicos_criados, topicos_respondidos, velocidade, media_acessos, ultima_participacao)
+                render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
             ]),
             html.Div(className="dashboard-professor-coluna", children=[
                 render_card_acessos(media_acessos, ultimo_acesso)
@@ -494,10 +491,21 @@ def render_conteudos_publicados(contagem):
         "Lições": "mdi:book-education-outline",
         "Conteúdos Multimédia": "mdi:video-box" 
     }
-    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal","bg-purple", "bg-pink"]
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-pink"]
 
     return html.Div(className="card card-volume", children=[
-        html.H4("Recursos Pedagógicos", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Recursos Pedagógicos", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Mostra a contagem de recursos pedagógicos disponibilizados pelo professor na UC.\n"
+                "- Ficheiros\n"
+                "- Páginas\n"
+                "- Quizzes\n"
+                "- Pastas\n"
+                "  etc.",
+                className="tooltip-text"
+            )
+        ]),
         html.Ul(className="volume-list", children=[
             html.Li(className="volume-item", children=[
                 html.Div(className=f"volume-icon-bg {cores[i]}", children=[
@@ -509,9 +517,20 @@ def render_conteudos_publicados(contagem):
         ])
     ])
 
-def render_card_forum(criados, respondidos, velocidade, media_acessos, ultima_participacao):
+
+def render_card_forum(criados, respondidos, velocidade, ultima_participacao):
     return html.Div(className="card dashboard-professor-card-forum", children=[
-        html.H4("Fórum - Tópicos", className="dashboard-professor-card-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Fórum - Tópicos", className="tooltip-hover dashboard-professor-card-title"),
+            html.Span(
+                "Mostra a participação do docente nos fóruns da UC.\n"
+                "- Criados: tópicos iniciados pelo professor\n"
+                "- Respondidos: respostas dadas a mensagens dos alunos\n"
+                "- Velocidade de Resposta: tempo médio entre uma questão de aluno e a resposta do professor\n"
+                "- Última Participação: data e hora da última interação no fórum",
+                className="tooltip-text"
+            )
+        ]),
         html.Div(className="dashboard-professor-forum-box", children=[
             html.Div(className="dashboard-professor-forum-item dashboard-professor-forum-item-criados", children=[
                 DashIconify(icon="mdi:email-outline", width=28, color="white"),
@@ -536,6 +555,7 @@ def render_card_forum(criados, respondidos, velocidade, media_acessos, ultima_pa
         ])
     ])
 
+
 def render_card_medias_classificacao(dados):
     labels = list(dados.keys())
     valores = list(dados.values())
@@ -559,7 +579,14 @@ def render_card_medias_classificacao(dados):
     )
 
     return html.Div(className="card-bloco", children=[
-        html.H4("Média de classificações por atividade", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Média de classificações por atividade", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Mostra a média das classificações obtidas pelos alunos nas atividades de avaliação.\n"
+                "Considera apenas os e-fólios realizados por alunos em regime de Avaliação Contínua.",
+                className="tooltip-text"
+            )
+        ]),
         dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
     ])
 
@@ -589,7 +616,18 @@ def render_card_estado_global(distribuicao):
     )
 
     return html.Div(className="card-bloco", children=[
-        html.H4("Desempenho Global", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Desempenho Global", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Mostra a distribuição do desempenho global dos alunos com base nas notas dos e-fólios.\n"
+                "A categorização segue os critérios:\n"
+                "- Expectável: soma ≥ 4.5 valores\n"
+                "- Em Risco: entre 3.5 e 4.5 valores\n"
+                "- Crítico: abaixo de 3.5 valores\n"
+                "- Não Aplicável: alunos fora do regime de Avaliação Contínua",
+                className="tooltip-text"
+            )
+        ]),
         dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
     ])
 
@@ -616,7 +654,15 @@ def render_topo_geral(user_id, course_id):
 
 def render_card_acessos(media_acessos, ultimo_acesso):
     return html.Div(className="card dashboard-professor-card-acessos", children=[
-        html.H4("Acessos ao Curso", className="dashboard-professor-card-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Acessos ao Curso", className="tooltip-hover dashboard-professor-card-title"),
+            html.Span(
+                "Mostra os padrões de acesso do professor ao curso no Moodle.\n"
+                "- Média de acessos (semanal): número médio de vezes que o professor acede à área do curso por semana\n"
+                "- Último Acesso: data do acesso mais recente registado",
+                className="tooltip-text"
+            )
+        ]),
         html.Div(className="dashboard-professor-acessos-box", children=[
             html.Div(className="dashboard-professor-acesso-item", children=[
                 DashIconify(icon="mdi:account-clock-outline", width=28, color="white"),
@@ -633,6 +679,25 @@ def render_card_acessos(media_acessos, ultimo_acesso):
 
 def render_card_conclusoes_gauge(valores_gauge):
     return html.Div(className="dashboard-professor-gaugue-linha", children=[
-        gerar_gauge_dashboard_professor("Taxa de conclusão das avaliações", valores_gauge["avaliativas"], "#b6f7c3"),
-        gerar_gauge_dashboard_professor("Taxa de conclusão das atividades", valores_gauge["formativas"], "#b2d7d5")
+        html.Div(children=[
+            html.Div(className="tooltip-bloco", children=[
+                html.H4("Taxa de conclusão das avaliações", className="tooltip-hover card-section-title"),
+                html.Span(
+                    "Mostra a percentagem média de alunos que concluíram os e-fólios.\n"
+                    "Considera apenas os alunos em regime de Avaliação Contínua.",
+                    className="tooltip-text"
+                )
+            ]),
+            gerar_gauge_dashboard_professor("", valores_gauge["avaliativas"], "#b6f7c3")
+        ], className="dashboard-professor-gauge-card"),
+        html.Div(children=[
+            html.Div(className="tooltip-bloco", children=[
+                html.H4("Taxa de conclusão das atividades", className="tooltip-hover card-section-title"),
+                html.Span(
+                    "Mostra a percentagem média de conclusão das atividades formativas (ficheiros, quizzes, páginas, etc.) por parte dos alunos inscritos na UC.",
+                    className="tooltip-text"
+                )
+            ]),
+            gerar_gauge_dashboard_professor("", valores_gauge["formativas"], "#b2d7d5")
+        ], className="dashboard-professor-gauge-card")
     ])

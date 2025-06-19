@@ -256,13 +256,29 @@ def layout(aluno_id, course_id):
 
 def render_progresso_atividades(avaliacao):
     return html.Div(className="card card-progresso", children=[
-        html.H4("Progresso da Avaliação", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Progresso da Avaliação", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Contabiliza automaticamente os e-fólios realizados pelo aluno nesta unidade curricular.",
+                className="tooltip-text"
+            )
+        ]),
         barra_personalizada("Avaliação", avaliacao, "#e2f396")
     ])
 
+
+
 def render_mensagens_forum(criados, respondidos):
     return html.Div(className="card card-forum", children=[
-        html.H4("Mensagens do fórum", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Mensagens do Fórum", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Mensagens publicadas pelo aluno nos fóruns da UC.\n"
+                "• Criados: tópicos novos iniciados pelo aluno\n"
+                "• Respondidos: respostas dadas a outros colegas ou ao professor",
+                className="tooltip-text"
+            )
+        ]),
         html.Div(className="dashboard-aluno-forum-box", children=[
             html.Div(className="dashboard-aluno-forum-item", children=[
                 DashIconify(icon="mdi:email-outline", width=36, color="white"),
@@ -276,6 +292,7 @@ def render_mensagens_forum(criados, respondidos):
             ])
         ])
     ])
+
 
 def render_volume_interacao(contagem):
     icons = {
@@ -292,7 +309,14 @@ def render_volume_interacao(contagem):
     cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-pink"]
 
     return html.Div(className="card card-volume", children=[
-        html.H4("Volume de Interação", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Volume de Interação", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Contagem de interações do aluno com os conteúdos da UC, como ficheiros, quizzes e páginas.\n"
+                "Os dados são extraídos dos registos de logs de atividade.",
+                className="tooltip-text"
+            )
+        ]),
         html.Ul(className="volume-list", children=[
             html.Li(className="volume-item", children=[
                 html.Div(className=f"volume-icon-bg {cores[i]}", children=[
@@ -303,6 +327,7 @@ def render_volume_interacao(contagem):
             ]) for i, tipo in enumerate(icons)
         ])
     ])
+
 
 def render_progresso_global(progresso_pct):
     fig = go.Figure(go.Indicator(
@@ -321,8 +346,15 @@ def render_progresso_global(progresso_pct):
         }
     ))
     fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=120)
+
     return html.Div(className="card card-gauge", children=[
-        html.H4("Progresso das Atividades", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.H4("Progresso das Atividades", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Percentagem de conteúdos pedagógicos concluídos: como páginas, ficheiros, quizzes e lições interativas da UC.",
+                className="tooltip-text"
+            )
+        ]),
         html.Div(className="gauge-wrapper", children=[
             dcc.Graph(figure=fig, config={'displayModeBar': False})
         ])
@@ -336,12 +368,24 @@ def render_desempenho(nivel):
     elif nivel == "Expectável":
         classe_cor = "indicador-expectavel"
     else:
-        classe_cor = "indicador-neutro"  # ← Para "Não Aplicável"
-    
+        classe_cor = "indicador-neutro"  # Para "Não Aplicável"
+
     return html.Div(className="card card-desempenho", children=[
-        html.H4("Desempenho", className="card-section-title"),
+        html.Div(className="tooltip-bloco", children=[
+            html.Div("Desempenho", className="tooltip-hover card-section-title"),
+            html.Span(
+                "Indica o desempenho atual do aluno com base nas notas dos e-fólios realizados.\n"
+                "Categorizado de acordo com a soma das notas em:\n"
+                "- Expectável: ≥ 4.5 valores \n"
+                "- Em Risco: entre 3.5 e 4.5 valores \n"
+                "- Crítico: abaixo de 3.5 valores \n"
+                "- Não Aplicável: Aluno fora do regime de Avaliação Contínua",
+                className="tooltip-text"
+            )
+        ]),
         html.Div(nivel, className=f"desempenho-indicador {classe_cor}")
     ])
+
 
 def barra_personalizada(label, valor, cor_primaria):
     return html.Div(className="barra-container", children=[
