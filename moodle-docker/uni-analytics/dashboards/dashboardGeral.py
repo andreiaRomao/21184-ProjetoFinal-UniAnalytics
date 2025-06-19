@@ -6,6 +6,7 @@ import queries.queriesComuns as qg
 import traceback
 import re
 from utils.logger import logger
+import unicodedata
 
 # =========================
 # Funções auxiliares para normalização e extração de dados
@@ -15,9 +16,13 @@ def normalizar_itemname(nome):
     if not isinstance(nome, str):
         logger.warning(f"[NORMALIZAR] Nome inválido (não string): {nome}")
         return ""
+    
     nome_original = nome
+    # Remove acentuação
+    nome = unicodedata.normalize("NFKD", nome).encode("ASCII", "ignore").decode("utf-8")
     nome = nome.lower()
     nome = re.sub(r'[^a-z0-9]', '', nome)
+    
     logger.debug(f"[NORMALIZAR] '{nome_original}' normalizado para '{nome}'")
     return nome
 
@@ -155,15 +160,87 @@ def register_callbacks(app):
             construir_figura_linhas_inscritos(inscritos, ano)
         )
 
+    @app.callback(
+        Output("info_nome_utilizador", "children"),
+        Output("info_nome_curso", "children"),
+        Input("dropdown_uc", "value"),
+        State("store_user_id", "data")
+    )
+    def atualizar_topo_info(novo_course_id, user_id):
+        nome, papel, nome_curso = get_dashboard_top_info(user_id, novo_course_id)
+        logger.debug(f"[TOPO_INFO] Atualizado: {nome} [{papel}] - {nome_curso}")
+        return f"[{papel}] {nome}", nome_curso
+
+    @app.callback(
+        Output("store_dados_grafico", "data"),
+        Input("dropdown_uc", "value"),
+        State("store_user_id", "data")
+    )
+    def atualizar_dados_grafico(course_id, user_id):
+        try:
+            # Obtemos todos os dados
+            completions = pd.DataFrame(qg.fetch_all_grade_progress_local())
+            cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
+
+            # Encontrar o nome do curso atual para extrair a uc_id
+            nome_curso = cursos.loc[
+                (cursos['user_id'] == user_id) & (cursos['course_id'] == course_id),
+                'course_name'
+            ].values
+
+            if len(nome_curso) == 0:
+                logger.warning(f"[STORE_DADOS] Curso {course_id} não encontrado para o utilizador {user_id}")
+                return {}
+
+            uc_id = re.search(r'(\d{5})', nome_curso[0])
+            if not uc_id:
+                logger.warning(f"[STORE_DADOS] uc_id não extraído de '{nome_curso[0]}'")
+                return {}
+
+            uc_id = uc_id.group(1)
+
+            # Filtrar cursos e completions pela mesma uc_id
+            cursos['uc_id'] = cursos['course_name'].str.extract(r'(\d{5})')
+            cursos_filtrados = cursos[cursos['uc_id'] == uc_id]
+            completions_filtrados = completions[completions['course_id'].isin(cursos_filtrados['course_id'])]
+
+            # Recalcular estatísticas
+            linhas_por_ano, pie_por_ano, inscritos_por_ano = calcular_estatisticas_por_ano(
+                completions_filtrados, cursos_filtrados
+            )
+
+            return {
+                "linhas": linhas_por_ano,
+                "pie": pie_por_ano,
+                "inscritos": inscritos_por_ano
+            }
+
+        except Exception as e:
+            logger.exception("[ERRO] (atualizar_dados_grafico): Erro ao atualizar dados do gráfico")
+            return {}
+
+    @app.callback(
+        Output("dropdown_ano", "value"),
+        Input("store_dados_grafico", "data")
+    )
+    def atualizar_dropdown_ano(store_data):
+        try:
+            anos = list(store_data.get("pie", {}).keys())
+            if not anos:
+                return None
+            return sorted(anos)[-1]  # Último ano disponível
+        except Exception as e:
+            logger.exception("[DASHBOARD] Erro ao atualizar dropdown_ano")
+            return None
+
 # =========================
 # Função auxiliar: Info topo do dashboard
 # =========================
 
 def get_dashboard_top_info(user_id, course_id):
     try:
-        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local()) # Obtém os dados dos cursos do utilizador
+        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())  # Dados dos cursos locais
 
-        # Filtra apenas pelo utilizador e curso atual
         linha = cursos[(cursos['user_id'] == user_id) & (cursos['course_id'] == course_id)].head(1)
 
         if not linha.empty:
@@ -188,42 +265,43 @@ def get_dashboard_top_info(user_id, course_id):
 # Obter cursos disponíveis para dropdown
 # =========================
 
-def obter_opcoes_dropdown_cursos():
+def obter_opcoes_dropdown_cursos(user_id):
     try:
         cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
-        logger.debug(f"[DROPDOWN] Total de registos carregados: {len(cursos)}")
+        cursos_user = cursos[cursos['user_id'] == user_id]
+        logger.debug(f"[Dropdown] Cursos do utilizador {user_id}: {cursos_user[['course_id', 'course_name']].to_dict(orient='records')}")
 
-        cursos_validos = cursos[cursos['course_name'].notna()]
-        logger.debug(f"[DROPDOWN] Cursos válidos com nome: {len(cursos_validos)}")
+        cursos_validos = cursos_user[cursos_user['course_name'].notna()].copy()
+        cursos_validos['uc_id'] = cursos_validos['course_name'].str.extract(r'(\d{5})')
+        logger.debug(f"[Dropdown] Cursos com uc_id extraído: {cursos_validos[['course_id', 'course_name', 'uc_id']].to_dict(orient='records')}")
 
-        opcoes = []
+        cursos_ordenados = cursos_validos.sort_values(by="course_name", ascending=False)
+        cursos_unicos = cursos_ordenados.drop_duplicates(subset=["uc_id"])
 
-        # Elimina cursos duplicados (caso o mesmo curso apareça para vários users)
-        cursos_unicos = cursos_validos.drop_duplicates(subset=["course_name"])
-        logger.debug(f"[DROPDOWN] Cursos únicos encontrados: {len(cursos_unicos)}")
+        opcoes = [
+            {"label": linha['course_name'], "value": linha['course_id']}
+            for _, linha in cursos_unicos.iterrows()
+        ]
+        logger.debug(f"[Dropdown] Opções finais para dropdown (user_id={user_id}): {opcoes}")
 
-        for _, linha in cursos_unicos.iterrows():
-            nome = linha['course_name']
-            opcoes.append({
-                "label": nome,
-                "value": nome
-            })
-
-        logger.info(f"[DROPDOWN] {len(opcoes)} opções de curso preparadas para o dropdown.")
         return opcoes
 
     except Exception as e:
-        logger.exception(f"[ERRO] (obter_opcoes_dropdown_cursos): {e}")
+        logger.error("[ERRO] (obter_opcoes_dropdown_cursos):", exc_info=True)
         return []
-
+    
 # =========================
 # Layout principal
 # =========================
 
-def layout(user_id, course_id):
+def layout(user_id):
     try:
         dados_completions = pd.DataFrame(qg.fetch_all_grade_progress_local())
         dados_cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
+        
+        dropdown_cursos = obter_opcoes_dropdown_cursos(user_id)
+        course_id_inicial = dropdown_cursos[0]['value'] if dropdown_cursos else None
+        
         linhas_por_ano, pie_por_ano, inscritos_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
 
         store_data = {
@@ -235,12 +313,13 @@ def layout(user_id, course_id):
         anos_disponiveis = sorted(pie_por_ano.keys())
         ano_inicial = anos_disponiveis[-1] if anos_disponiveis else ""
 
-        nome, papel, curso = get_dashboard_top_info(user_id, course_id)
+        nome, papel, curso = get_dashboard_top_info(user_id, course_id_inicial)
         ano_curso_atual = extrair_ano_letivo(curso) or ""
-        dropdown_cursos = obter_opcoes_dropdown_cursos()
+        dropdown_cursos = obter_opcoes_dropdown_cursos(user_id)
 
         return html.Div(className="dashboard-geral", children=[
             dcc.Store(id="store_dados_grafico", data=store_data),
+            dcc.Store(id="store_user_id", data=user_id),
 
             html.Div(className="topo-dashboard", children=[
                 html.Div(className="linha-superior", children=[
@@ -251,20 +330,20 @@ def layout(user_id, course_id):
                             color="#2c3e50",
                             className="avatar-icon"
                         ),
-                        html.Span(f"[{papel}] {nome}", className="nome-utilizador")
+                        html.Span(f"[{papel}] {nome}", className="nome-utilizador", id="info_nome_utilizador")
                     ]),
                     html.Div(className="dropdown-curso", children=[
                         dcc.Dropdown(
                             id="dropdown_uc",
                             options=dropdown_cursos,
-                            value=course_id,
+                            value=course_id_inicial,
                             clearable=False,
-                            className="dropdown-uc-selector dashboard-geral-oculto"  
+                            className="dropdown-uc-selector" 
                         )
                     ])
                 ]),
                 html.Div(className="barra-uc", children=[
-                    html.Span(curso, className="nome-curso"),
+                    html.Span(id="info_nome_curso", className="nome-curso"),
                     html.Span(ano_curso_atual, className="ano-letivo")
                 ])
             ]),
