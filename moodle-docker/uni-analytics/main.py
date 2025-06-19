@@ -91,11 +91,10 @@ def display_page(pathname, search):
         blocos_formularios = []
 
         # Dashboards
-        links_dash.append(dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", className="btn-suave"))
+        if user_role != "admin":
+            links_dash.append(dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", className="btn-suave"))
         if user_role == "admin":
             links_dash.extend([
-                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", className="btn-suave"),
-                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", className="btn-suave"),
                 dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", className="btn-suave"),
                 dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
                 dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
