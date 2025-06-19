@@ -61,11 +61,27 @@ def get_layout(pathname, user_id, item_id):
     logger.warning(f"[Router] Rota não reconhecida: {pathname}")
     return None
 
-def listar_formularios_disponiveis():
+def listar_formularios_disponiveis(user_id):
     try:
         logger.debug("[Formulários] A verificar formulários disponíveis...")
         conn = connect_to_uni_analytics_db()
         cursor = conn.cursor()
+
+        # Verifica se o aluno pertence ao grupo "Avaliação Continua"
+        cursor.execute("""
+            SELECT group_name
+            FROM course_data
+            WHERE user_id = ?
+            LIMIT 1
+        """, (user_id,))
+        resultado = cursor.fetchone()
+
+        if not resultado or not resultado[0] or "continua" not in resultado[0].lower():
+            logger.info("[Formulários] Aluno não pertence a Avaliação Contínua. Não mostrar formulários.")
+            return html.Div([
+                html.H3("Formulários de Avaliação Disponíveis", className="home-bloco-titulo"),
+                html.Div("Os formulários de Avaliação só estão disponíveis para alunos de Avaliação Contínua.")
+            ])
 
         cursor.execute("""
             SELECT item_id, name, course_name, available_pre, available_pos
@@ -95,13 +111,19 @@ def listar_formularios_disponiveis():
 
         if not componentes:
             logger.info("[Formulários] Nenhum formulário de avaliação disponível.")
-            return html.Div("Nenhum formulário de avaliação disponível neste momento.")
+            return html.Div([
+                html.H3("Formulários de Avaliação Disponíveis", className="home-bloco-titulo"),
+                html.Div("Nenhum formulário de avaliação disponível neste momento.")
+            ])
 
         return html.Div([
             html.H3("Formulários de Avaliação Disponíveis", className="home-bloco-titulo"),
             html.Div(componentes)
         ])
-    
+
     except Exception as e:
         logger.error("[ERRO] (listar_formularios_disponiveis):", exc_info=True)
-        return html.Div("Erro ao carregar formulários disponíveis.")
+        return html.Div([
+            html.H3("Formulários de Avaliação Disponíveis", className="home-bloco-titulo"),
+            html.Div("Erro ao carregar formulários disponíveis.")
+        ])

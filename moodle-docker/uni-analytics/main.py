@@ -4,7 +4,8 @@ import dash
 from dash import html, dcc, Input, Output, State, ctx, no_update
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor, dashboardPre, dashboardPos
 from forms import formularioMain, formularioPre, formularioPos  , formulariosAdmin
-from db.uniAnalytics import init_uni_analytics_db 
+from db.uniAnalytics import init_uni_analytics_db
+from db.uniAnalytics import connect_to_uni_analytics_db
 from auth import login
 from flask import Flask, session
 from urllib.parse import urlparse, parse_qs 
@@ -106,12 +107,29 @@ def display_page(pathname, search):
                 dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
             ])
         elif user_role == "aluno":
-            links_dash.extend([
-                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", className="btn-suave"),
-                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
-            ])
-            blocos_formularios = [formularioMain.listar_formularios_disponiveis()]
+            links_dash = [
+                dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", className="btn-suave"),
+                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", className="btn-suave")
+            ]
+            # Verifica se pertence ao grupo "Avaliação Contínua"
+            conn = connect_to_uni_analytics_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT group_name
+                FROM course_data
+                WHERE user_id = ?
+                LIMIT 1
+            """, (user_id,))
+            resultado = cursor.fetchone()
+            conn.close()
+
+            if resultado and resultado[0] and "continua" in resultado[0].lower():
+                links_dash.extend([
+                    dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
+                    dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
+                ])
+
+            blocos_formularios = [formularioMain.listar_formularios_disponiveis(user_id)]
 
         # Verifica se existem formulários
         tem_formularios = len(blocos_formularios) > 0
