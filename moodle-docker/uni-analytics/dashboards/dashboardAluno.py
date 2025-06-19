@@ -383,13 +383,13 @@ def render_desempenho(nivel):
                 className="tooltip-text"
             )
         ]),
-        html.Div(nivel, className=f"desempenho-indicador {classe_cor}")
+        html.Div(nivel, className=f"desempenho-indicador {classe_cor}", style={"marginTop": "12px"})
     ])
 
 
 def barra_personalizada(label, valor, cor_primaria):
     return html.Div(className="barra-container", children=[
-        html.Div(label, className="barra-label"),
+        html.Div(label, className="barra-label", style={"marginTop": "12px"}),
         html.Div(className="barra-fundo", children=[
             html.Div(style={"width": f"{valor}%", "backgroundColor": cor_primaria}, className="barra-progresso"),
             html.Div(f"{valor}%", className="barra-texto")
