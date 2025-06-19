@@ -11,12 +11,11 @@ moodledata/
 # Node/npm stuff (se usares futuramente)
 node_modules/
 
-# Ignorar logs do módulo uni-analytics
+# Ignorar a diretoria de logs
 uni-analytics/logs/
 
 # Ignorar base de dados local
 uni-analytics/db/uniAnalytics.db
 
-# Ignorar todos os ficheiros .sh da pasta moodle-docker
-backup.sh
-restore.sh
+# Ignorar a diretoria de backups
+uni-analytics/backups/
