@@ -163,7 +163,7 @@ def display_page(pathname, search):
 
 
     elif pathname == "/dashboards/dashboardGeral":
-        return dashboardGeral.layout(user_id, course_id)
+        return dashboardGeral.layout(user_id)
     
     elif pathname == "/dashboards/dashboardAluno":
         if user_role in ["aluno", "admin"]:
