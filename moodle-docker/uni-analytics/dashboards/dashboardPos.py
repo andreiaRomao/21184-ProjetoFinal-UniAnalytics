@@ -9,7 +9,9 @@ import queries.formsPos as qpos
 import queries.formsComuns as qfcomuns
 
 
-
+# =========================
+# Funções de lógica modular
+# ========================
 def register_callbacks(app):
     @app.callback(
         [Output("dropdown_item_pos", "options"), Output("dropdown_item_pos", "value")],
@@ -79,26 +81,25 @@ def obter_opcoes_dropdown_pos():
 
 def get_total_respostas_info_reais(item_id):
     try:
-        # Obtemos o course_id e o total de respostas do forms
         course_id, total_respostas = qfcomuns.pre_pos_obter_course_id_e_total_respostas(item_id)
         if not course_id:
             return "Curso não encontrado."
 
-        # Obtemos a lista de utilizadores inscritos nesse curso
-        df_utilizadores = qg.fetch_user_course_data()
+        df_utilizadores = pd.DataFrame(qg.fetch_all_user_course_data_local())
 
-        # Filtramos alunos da Avaliação Contínua naquele curso
         df_filtrado = df_utilizadores[
             (df_utilizadores["role"].str.lower() == "student") &
-            (df_utilizadores["courseid"] == course_id) &
-            (df_utilizadores["groupname"].fillna("").str.strip().str.lower().str.contains("aval"))
+            (df_utilizadores["course_id"] == course_id) &
+            (df_utilizadores["group_name"].fillna("").str.strip().str.lower().str.contains("aval"))
         ]
 
         total_alunos = len(df_filtrado)
 
+        logger.debug(f"[DASHBOARD_POS] Total respostas: {total_respostas}, Total alunos: {total_alunos}")
         return f"{total_respostas} respostas de {total_alunos} alunos"
-    
+
     except Exception as e:
+        logger.exception("[DASHBOARD_POS] Erro ao obter dados reais")
         return "Erro ao obter dados reais"
 
 def get_valores_reais_horas_pos(item_id):
@@ -116,6 +117,7 @@ def get_valores_reais_horas_pos(item_id):
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_POS] Horas dedicadas: {contagem}")
     return contagem
 
 def get_valores_reais_expectativa(item_id):
@@ -132,6 +134,7 @@ def get_valores_reais_expectativa(item_id):
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_POS] Expectativa desempenho: {contagem}")
     return contagem
 
 def get_valores_reais_dificuldade(item_id):
@@ -147,6 +150,7 @@ def get_valores_reais_dificuldade(item_id):
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_POS] Dificuldade eFólio: {contagem}")
     return contagem
 
 def get_valores_reais_esforco(item_id):
@@ -162,6 +166,7 @@ def get_valores_reais_esforco(item_id):
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_POS] Esforço investido: {contagem}")
     return contagem
 
 def get_valores_reais_abrangencia(item_id):
@@ -177,6 +182,7 @@ def get_valores_reais_abrangencia(item_id):
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_POS] Abrangência dos recursos: {contagem}")
     return contagem
 
 def get_valores_reais_sincrona(item_id):
@@ -193,6 +199,7 @@ def get_valores_reais_sincrona(item_id):
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_POS] Sessão síncrona: {contagem}")
     return contagem
 
 # =========================

@@ -5,77 +5,75 @@ import queries.queriesAluno as qa
 import queries.queriesComuns as qg
 import traceback
 import re
-
+from utils.logger import logger
+import pandas as pd
 
 # =========================
 # Funções de lógica modular
 # =========================
-
 def calcular_pct_completions(dados, aluno_id, course_id, tipos, grupo_aluno=None, apenas_ids=None):
-    # Filtra dados relevantes para o aluno e curso
+    logger.debug("[PCT_COMPLETIONS] Início do cálculo de percentagem de completions")
+
     dados_filtrados = [
         d for d in dados
         if d['course_id'] == course_id
         and d['module_type'] in tipos
-        and (apenas_ids is None or d['coursemodule_id'] in apenas_ids)
+        and (apenas_ids is None or d['course_module_id'] in apenas_ids)
     ]
 
-    # Excluir atividades irrelevantes conforme o grupo
     if grupo_aluno:
         grupo_aluno = grupo_aluno.lower()
         dados_filtrados = [
             d for d in dados_filtrados
             if not (
                 d['module_type'] == 'assign' and (
-                    # Excluir "exame" e "exame de recurso" para Avaliação Contínua
-                    ("aval" in grupo_aluno and any(e in (d.get('itemname') or '').lower() for e in ['exame'])) or
-                    # Excluir "efolios" e "global" para grupo Exame
-                    ("exam" in grupo_aluno and any(e in (d.get('itemname') or '').lower() for e in ['efolio', 'global']))
+                    ("aval" in grupo_aluno and any(e in (d.get('item_name') or '').lower() for e in ['exame'])) or
+                    ("exam" in grupo_aluno and any(e in (d.get('item_name') or '').lower() for e in ['efolio', 'global']))
                 )
             )
         ]
 
-    # IDs únicos e completados
-    ids_unicos = set(d['coursemodule_id'] for d in dados_filtrados)
+    ids_unicos = set(d['course_module_id'] for d in dados_filtrados)
     completados = set(
-        d['coursemodule_id']
+        d['course_module_id']
         for d in dados_filtrados
-        if d.get('userid') == aluno_id and d.get('completionstate') == 1
+        if d.get('user_id') == aluno_id and d.get('completion_state') == 1
     )
 
     total = len(ids_unicos)
     concluidos = len(completados)
 
+    logger.debug(f"[PCT_COMPLETIONS] Total: {total}, Concluídos: {concluidos}")
     return round(concluidos / total * 100) if total > 0 else 0
 
 def obter_grupo_aluno(dados, aluno_id, course_id):
     for d in dados:
-        if d['userid'] == aluno_id and d['course_id'] == course_id and d.get("groupname"):
-            return d["groupname"].lower()
+        if d['user_id'] == aluno_id and d['course_id'] == course_id and d.get("group_name"):
+            return d["group_name"].lower()
     return None
 
 def obter_assigns_validos(dados, course_id, grupo_aluno):
     assigns_validos = []
     for d in dados:
         if d["course_id"] == course_id and d["module_type"] == "assign":
-            nome = (d.get("itemname") or "").lower()
-            grupo = (d.get("groupname") or "").lower()
+            nome = (d.get("item_name") or "").lower()
+            grupo = (d.get("group_name") or "").lower()
 
             if grupo_aluno and grupo_aluno in grupo:
                 if "aval" in grupo_aluno and "efolio" in nome and "global" not in nome:
-                    assigns_validos.append(d["coursemodule_id"])
+                    assigns_validos.append(d["course_module_id"])
                 elif "exam" in grupo_aluno and "exame" in nome:
-                    assigns_validos.append(d["coursemodule_id"])
+                    assigns_validos.append(d["course_module_id"])
+    logger.debug(f"[ASSIGNS_VALIDOS] Total: {len(assigns_validos)}")
     return assigns_validos
 
 def calcular_desempenho_etl(dados, aluno_id, course_id):
     grupo_aluno = None
     for d in dados:
-        if d.get("userid") == aluno_id and d.get("course_id") == course_id:
-            grupo_aluno = (d.get("groupname") or "").strip().lower()
+        if d.get("user_id") == aluno_id and d.get("course_id") == course_id:
+            grupo_aluno = (d.get("group_name") or "").strip().lower()
             break
 
-    # Se não tiver grupo ou não for grupo "aval", retorna "Não Aplicável"
     if not grupo_aluno or "aval" not in grupo_aluno:
         return "Não Aplicável"
 
@@ -83,18 +81,19 @@ def calcular_desempenho_etl(dados, aluno_id, course_id):
     for d in dados:
         if (
             d.get("course_id") == course_id and
-            d.get("userid") == aluno_id and
+            d.get("user_id") == aluno_id and
             d.get("module_type") == "assign" and
-            d.get("finalgrade") is not None
+            d.get("final_grade") is not None
         ):
-            nome = (d.get("itemname") or "").lower()
+            nome = (d.get("item_name") or "").lower()
             if any(e in nome for e in ['efolio', 'global']):
                 try:
-                    soma += float(d['finalgrade'])
+                    soma += float(d['final_grade'])
                 except (ValueError, TypeError):
-                    print(f"[AVISO] Nota inválida ignorada: {d['finalgrade']}")
+                    logger.warning(f"[DESEMPENHO] Nota inválida ignorada: {d['final_grade']}")
                     continue
 
+    logger.debug(f"[DESEMPENHO] Soma final: {soma}")
     if soma < 3.5:
         return "Crítico"
     elif soma < 4.5:
@@ -102,22 +101,25 @@ def calcular_desempenho_etl(dados, aluno_id, course_id):
     else:
         return "Expectável"
 
-
 def contar_topicos_criados(dados, aluno_id, course_id):
-    return sum(
+    total = sum(
         1 for d in dados
         if d['user_id'] == aluno_id
         and d['course_id'] == course_id
         and d['post_type'] == 'topic'
     )
+    logger.debug(f"[TOPICOS] Criados: {total}")
+    return total
 
 def contar_respostas(dados, aluno_id, course_id):
-    return sum(
+    total = sum(
         1 for d in dados
         if d['user_id'] == aluno_id
         and d['course_id'] == course_id
         and d['post_type'] == 'reply'
     )
+    logger.debug(f"[RESPOSTAS] Total: {total}")
+    return total
 
 def contar_interacoes_aluno(dados, aluno_id, course_id):
     tipos = [
@@ -129,18 +131,17 @@ def contar_interacoes_aluno(dados, aluno_id, course_id):
     for d in dados:
         if d['user_id'] == aluno_id and d['course_id'] == course_id:
             tipo = d.get('tipo_interacao')
-
             if tipo in contagem:
                 contagem[tipo] += 1
 
+    logger.debug(f"[INTERAÇÕES] Contagem: {contagem}")
     return contagem
 
-def get_dashboard_top_info(userid, course_id):
+def get_dashboard_top_info(user_id, course_id):
     try:
-        cursos = qg.fetch_user_course_data()
+        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
 
-        # Filtra apenas pelo utilizador e curso atual
-        linha = cursos[(cursos['userid'] == userid) & (cursos['courseid'] == course_id)].head(1)
+        linha = cursos[(cursos['user_id'] == user_id) & (cursos['course_id'] == course_id)].head(1)
 
         if not linha.empty:
             nome = linha['name'].values[0]
@@ -155,10 +156,10 @@ def get_dashboard_top_info(userid, course_id):
         return nome, papel, nome_curso
 
     except Exception as e:
-        print("[ERRO] (get_dashboard_top_info):", e)
+        logger.exception(f"[ERRO] (get_dashboard_top_info): {e}")
         return "Erro", "Erro", "Erro"
 
-def extrair_ano_letivo(course_name):    
+def extrair_ano_letivo(course_name):
     match = re.search(r'_(\d{2})', course_name)
     if match:
         sufixo = int(match.group(1))
@@ -174,6 +175,7 @@ def obter_progresso_avaliacao(dados_completions, aluno_id, course_id, grupo_alun
         )
     else:
         valor = 0
+    logger.debug(f"[PROGRESSO_AVALIACAO] Mostrar: {mostrar}, Valor: {valor}%")
     return mostrar, valor
 
 # =========================
@@ -182,7 +184,7 @@ def obter_progresso_avaliacao(dados_completions, aluno_id, course_id, grupo_alun
 
 def layout(aluno_id, course_id):
     try:
-        dados_completions = qg.fetch_all_completions()
+        dados_completions = qg.fetch_all_grade_progress_local()
         dados_forum = qg.fetch_all_forum_posts_local()
         dados_interacoes = qa.fetch_all_interacoes_local()
 
@@ -341,7 +343,6 @@ def render_desempenho(nivel):
         html.Div(nivel, className=f"desempenho-indicador {classe_cor}")
     ])
 
-
 def barra_personalizada(label, valor, cor_primaria):
     return html.Div(className="barra-container", children=[
         html.Div(label, className="barra-label"),
@@ -351,8 +352,8 @@ def barra_personalizada(label, valor, cor_primaria):
         ])
     ])    
 
-def render_topo_geral(userid, course_id):
-    nome, papel, curso = get_dashboard_top_info(userid, course_id)
+def render_topo_geral(user_id, course_id):
+    nome, papel, curso = get_dashboard_top_info(user_id, course_id)
     ano_curso_atual = extrair_ano_letivo(curso) or ""
     return html.Div(className="topo-dashboard", children=[
         html.Div(className="linha-superior", children=[

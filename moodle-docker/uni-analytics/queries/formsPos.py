@@ -250,7 +250,6 @@ def pos_horas_dedicadas(item_id):
         logger.exception("[ADMIN] Erro ao listar respostas pos_horas_dedicadas")
         return []
 
-
 def pos_obter_course_id_e_total_respostas(item_id):
     conn = connect_to_uni_analytics_db()
     cursor = conn.cursor()

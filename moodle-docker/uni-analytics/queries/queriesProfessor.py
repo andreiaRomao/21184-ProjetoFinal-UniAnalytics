@@ -1,14 +1,16 @@
 import pandas as pd
 from db.moodleConnection import connect_to_moodle_db
-import queries.queriesComuns as qg
+from db.uniAnalytics import connect_to_uni_analytics_db
 
-def fetch_conteudos_disponibilizados():
+################### Moodle Queries ###################
+# Função para obter os conteudos disponibilizados por professores
+def fetch_all_conteudos_disponibilizados():
     conn = connect_to_moodle_db()
     query = """
         SELECT
-            cm.id AS coursemodule_id,
+            cm.id AS course_module_id,
             cm.course AS course_id,
-            cm.added AS timecreated,
+            cm.added AS time_created,
             m.name AS module_type
         FROM mdl_course_modules cm
         JOIN mdl_modules m ON m.id = cm.module
@@ -25,14 +27,15 @@ def fetch_conteudos_disponibilizados():
         conn.close()
         return []
 
-def fetch_course_access_logs():
+# Função para obter informação sobre acessos
+def fetch_all_course_access_logs():
     conn = connect_to_moodle_db()
     query = """
         SELECT
-            u.id AS userid,
+            u.id AS user_id,
             CONCAT(u.firstname, ' ', u.lastname) AS name,
             r.shortname AS role,
-            c.id AS courseid,
+            c.id AS course_id,
             c.fullname AS course_name,
             FROM_UNIXTIME(l.timecreated) AS access_time
         FROM mdl_user u
@@ -55,3 +58,45 @@ def fetch_course_access_logs():
         print("Erro ao obter logs de acesso ao curso:", e)
         conn.close()
         return []
+
+################### Local Queries ###################
+# Conteúdos disponibilizados localmente
+def fetch_conteudos_disponibilizados_local():
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            course_module_id,
+            course_id,
+            module_type,
+            time_created,
+            time_updated
+        FROM conteudos_disponibilizados
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    colunas = ["course_module_id", "course_id", "module_type", "time_created", "time_updated"]
+
+    return [dict(zip(colunas, row)) for row in rows]
+
+# Logs de acesso ao curso localmente
+def fetch_course_access_logs_local():
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            user_id,
+            name,
+            role,
+            course_id,
+            course_name,
+            access_time,
+            time_updated
+        FROM course_access_logs
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    colunas = ["user_id", "name", "role", "course_id", "course_name", "access_time", "time_updated"]
+    return [dict(zip(colunas, row)) for row in rows]

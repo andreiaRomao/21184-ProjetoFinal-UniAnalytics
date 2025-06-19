@@ -8,6 +8,9 @@ import queries.formsPre as qpre
 import queries.formsComuns as qfcomuns
 from utils.logger import logger
 
+# =========================
+# Funções de lógica modular
+# ========================
 
 def register_callbacks(app):
     @app.callback(
@@ -27,6 +30,7 @@ def register_callbacks(app):
         Input("dropdown_item", "value")
     )
     def atualizar_grafico(item_id):
+        logger.debug(f"[DASHBOARD_PRE] Atualizar gráficos para item_id: {item_id}")
         valores_horas = get_valores_reais_horas(item_id)
         valores_aces = get_valores_reais_acessibilidade(item_id) 
         valores_assert = get_valores_reais_assertividade(item_id)
@@ -72,75 +76,68 @@ def obter_opcoes_dropdown_pre():
 
 def get_total_respostas_info_reais(item_id):
     try:
-        # Obtemos o course_id e o total de respostas do forms
         course_id, total_respostas = qfcomuns.pre_pos_obter_course_id_e_total_respostas(item_id)
         if not course_id:
             return "Curso não encontrado."
 
-        # Obtemos a lista de utilizadores inscritos nesse curso
-        df_utilizadores = qg.fetch_user_course_data()
+        df_utilizadores = pd.DataFrame(qg.fetch_all_user_course_data_local())
 
-        # Filtramos alunos da Avaliação Contínua naquele curso
         df_filtrado = df_utilizadores[
             (df_utilizadores["role"].str.lower() == "student") &
-            (df_utilizadores["courseid"] == course_id) &
-            (df_utilizadores["groupname"].fillna("").str.strip().str.lower().str.contains("aval"))
+            (df_utilizadores["course_id"] == course_id) &
+            (df_utilizadores["group_name"].fillna("").str.strip().str.lower().str.contains("aval"))
         ]
 
         total_alunos = len(df_filtrado)
 
         return f"{total_respostas} respostas de {total_alunos} alunos"
-    
+
     except Exception as e:
+        logger.exception("[DASHBOARD_PRE] Erro ao obter dados reais")
         return "Erro ao obter dados reais"
 
 def get_valores_reais_horas(item_id):
-    ordem_desejada = ["< 5h", "5 a 10h", "10 a 20h", "20 a 40h", "> 40h"]
-
     dados = qpre.pre_horas_preparacao(item_id)
-
+    ordem_desejada = ["< 5h", "5 a 10h", "10 a 20h", "20 a 40h", "> 40h"]
     contagem = {cat: 0 for cat in ordem_desejada}
 
     for _, _, categoria, total in dados:
         contagem[categoria] = total
 
+    logger.debug(f"[DASHBOARD_PRE] Horas preparação: {contagem}")
     return contagem
 
 def get_valores_reais_acessibilidade(item_id):
     dados = qpre.pre_recursos_acessibilidade(item_id)
-
     ordem_desejada = [
         "Acessíveis e bem organizados",
         "Acessíveis, mas estrutura confusa",
         "Pouco acessíveis e desorganizados"
     ]
-
     contagem = {cat: 0 for cat in ordem_desejada}
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_PRE] Acessibilidade: {contagem}")
     return contagem
 
 def get_valores_reais_assertividade(item_id):
     dados = qpre.pre_recursos_utilidade(item_id)
-
     ordem_desejada = [
         "Não utilizados",
         "Parcialmente úteis - lacunas",
         "Muito úteis",
         "Pouco úteis - Necessitam revisao"
     ]
-
     contagem = {cat: 0 for cat in ordem_desejada}
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_PRE] Assertividade: {contagem}")
     return contagem
-
 
 def get_valores_reais_atividades(item_id):
     dados = qpre.pre_atividades_utilidade(item_id)
-
     ordem_desejada = [
         "Parcialmente úteis - correção",
         "Parcialmente úteis - desatualizadas",
@@ -148,11 +145,11 @@ def get_valores_reais_atividades(item_id):
         "Parcialmente úteis - lacunas",
         "Não realizou"
     ]
-
     contagem = {cat: 0 for cat in ordem_desejada}
     for _, _, categoria, total in dados:
         contagem[categoria] += total
 
+    logger.debug(f"[DASHBOARD_PRE] Atividades: {contagem}")
     return contagem
 
 # =========================

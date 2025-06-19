@@ -5,6 +5,7 @@ import pandas as pd
 import queries.queriesComuns as qg
 import traceback
 import re
+from utils.logger import logger
 
 # =========================
 # Funções auxiliares para normalização e extração de dados
@@ -12,9 +13,12 @@ import re
 
 def normalizar_itemname(nome):
     if not isinstance(nome, str):
+        logger.warning(f"[NORMALIZAR] Nome inválido (não string): {nome}")
         return ""
+    nome_original = nome
     nome = nome.lower()
     nome = re.sub(r'[^a-z0-9]', '', nome)
+    logger.debug(f"[NORMALIZAR] '{nome_original}' normalizado para '{nome}'")
     return nome
 
 def extrair_ano_letivo(course_name):
@@ -22,7 +26,10 @@ def extrair_ano_letivo(course_name):
     if match:
         sufixo = int(match.group(1))
         ano_inicio = 2000 + sufixo
-        return f"{ano_inicio}/{ano_inicio + 1}"
+        ano_letivo = f"{ano_inicio}/{ano_inicio + 1}"
+        logger.debug(f"[ANO] Ano letivo extraído de '{course_name}': {ano_letivo}")
+        return ano_letivo
+    logger.warning(f"[ANO] Falha ao extrair ano letivo de: {course_name}")
     return None
 
 def classificar_aluno(grupo, notas):
@@ -34,22 +41,31 @@ def classificar_aluno(grupo, notas):
     exame_rec = notas.get('examerecurso')
     soma = a + b
 
+    logger.debug(f"[CLASSIFICAR] Grupo: {grupo} | Notas: {notas}")
+
     if 'exame' in grupo.lower():
         if exame and exame >= 9.5:
+            logger.info(f"[CLASSIFICAR] Classificação final: Exame")
             return "Exame"
         elif exame and exame < 9.5 and exame_rec and exame_rec >= 9.5:
+            logger.info(f"[CLASSIFICAR] Classificação final: Exame Recurso")
             return "Exame Recurso"
         else:
+            logger.info(f"[CLASSIFICAR] Classificação final: Reprovado (Exame)")
             return "Reprovado"
     else:
         if soma >= 3.5:
             if global_ and global_ >= 5.5 and soma + global_ >= 9.5:
+                logger.info(f"[CLASSIFICAR] Classificação final: Efolio Global")
                 return "Efolio Global"
             elif recurso and recurso >= 5.5 and soma + recurso >= 9.5:
+                logger.info(f"[CLASSIFICAR] Classificação final: Efolio Recurso")
                 return "Efolio Recurso"
             else:
+                logger.info(f"[CLASSIFICAR] Classificação final: Reprovado (E-fólios)")
                 return "Reprovado"
         else:
+            logger.info(f"[CLASSIFICAR] Classificação final: Reprovado (nota insuficiente)")
             return "Reprovado"
         
 # =========================
@@ -57,13 +73,17 @@ def classificar_aluno(grupo, notas):
 # =========================
 
 def calcular_estatisticas_por_ano(completions, cursos):
-    completions['itemname'] = completions['itemname'].apply(normalizar_itemname)
+    logger.debug("Início do cálculo de estatísticas por ano.")
+
+    completions['item_name'] = completions['item_name'].apply(normalizar_itemname)
     cursos['ano_letivo'] = cursos['course_name'].apply(extrair_ano_letivo)
 
+    logger.debug("Dados normalizados e ano letivo extraído dos nomes dos cursos.")
+
     df = completions.merge(
-        cursos[['userid', 'courseid', 'course_name', 'ano_letivo']],
-        left_on=['userid', 'course_id'],
-        right_on=['userid', 'courseid'],
+        cursos[['user_id', 'course_id', 'course_name', 'ano_letivo']],
+        left_on=['user_id', 'course_id'],
+        right_on=['user_id', 'course_id'],
         how='left'
     )
 
@@ -72,28 +92,29 @@ def calcular_estatisticas_por_ano(completions, cursos):
         ano_atual = anos[-1]
         anos = [a for a in anos if a != ano_atual]
 
+    logger.info(f"Anos letivos a analisar (excluindo o atual '{ano_atual}'): {anos}")
+
     pie_por_ano = {}
     linhas_por_ano = {}
     inscritos_por_ano = (
-        cursos[cursos['role'] == 'student'][['userid', 'ano_letivo']]
+        cursos[cursos['role'] == 'student'][['user_id', 'ano_letivo']]
         .drop_duplicates()
-        .groupby('ano_letivo')['userid']
+        .groupby('ano_letivo')['user_id']
         .nunique()
         .to_dict()
     )
+
+    logger.debug(f"Número de inscritos por ano: {inscritos_por_ano}")
 
     for ano in anos:
         df_ano = df[df['ano_letivo'] == ano]
         situacoes = {}
 
-        for uid, grupo in df_ano.groupby('userid'):
-            notas = grupo.set_index('itemname')['finalgrade'].to_dict()
-
-            # Vai buscar o groupname diretamente de 'cursos'
+        for uid, grupo in df_ano.groupby('user_id'):
+            notas = grupo.set_index('item_name')['final_grade'].to_dict()
             grupo_nome = cursos[
-                (cursos['userid'] == uid) & (cursos['courseid'] == grupo['course_id'].iloc[0])
-            ]['groupname'].dropna().unique()
-
+                (cursos['user_id'] == uid) & (cursos['course_id'] == grupo['course_id'].iloc[0])
+            ]['group_name'].dropna().unique()
             grupo_nome = grupo_nome[0].lower() if len(grupo_nome) > 0 else "desconhecido"
 
             situacao = classificar_aluno(grupo_nome, notas)
@@ -106,6 +127,9 @@ def calcular_estatisticas_por_ano(completions, cursos):
         reprovados = contagem.get("Reprovado", 0)
         linhas_por_ano[ano] = [aprovados, reprovados]
 
+        logger.info(f"Ano {ano}: {aprovados} aprovados, {reprovados} reprovados | Distribuição: {contagem}")
+
+    logger.debug("Estatísticas por ano calculadas com sucesso.")
     return linhas_por_ano, pie_por_ano, inscritos_por_ano
 
 # =========================
@@ -116,7 +140,7 @@ def register_callbacks(app):
     @app.callback(
         Output("grafico_linhas", "figure"),
         Output("grafico_pie", "figure"),
-        Output("grafico_linhas_inscritos", "figure"),  # ← corrigido aqui
+        Output("grafico_linhas_inscritos", "figure"), 
         Input("dropdown_ano", "value"),
         State("store_dados_grafico", "data")
     )
@@ -131,34 +155,34 @@ def register_callbacks(app):
             construir_figura_linhas_inscritos(inscritos, ano)
         )
 
-
 # =========================
 # Função auxiliar: Info topo do dashboard
 # =========================
 
-def get_dashboard_top_info(userid, course_id):
+def get_dashboard_top_info(user_id, course_id):
     try:
-        cursos = qg.fetch_user_course_data()
+        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local()) # Obtém os dados dos cursos do utilizador
 
         # Filtra apenas pelo utilizador e curso atual
-        linha = cursos[(cursos['userid'] == userid) & (cursos['courseid'] == course_id)].head(1)
+        linha = cursos[(cursos['user_id'] == user_id) & (cursos['course_id'] == course_id)].head(1)
 
         if not linha.empty:
             nome = linha['name'].values[0]
             papel_raw = linha['role'].values[0].lower()
             papel = "ALUNO" if "student" in papel_raw else "PROFESSOR"
             nome_curso = linha['course_name'].values[0]
+            logger.debug(f"[DASHBOARD_INFO] Utilizador {user_id} no curso {course_id}: {nome} ({papel}) - {nome_curso}")
         else:
             nome = "Utilizador Desconhecido"
             papel = "-"
             nome_curso = f"{course_id} - UC Desconhecida"
+            logger.warning(f"[DASHBOARD_INFO] Nenhum dado encontrado para user_id={user_id}, course_id={course_id}")
 
         return nome, papel, nome_curso
 
     except Exception as e:
-        print("[ERRO] (get_dashboard_top_info):", e)
+        logger.exception(f"[ERRO] (get_dashboard_top_info): {e}")
         return "Erro", "Erro", "Erro"
-
 
 # =========================
 # Obter cursos disponíveis para dropdown
@@ -166,13 +190,17 @@ def get_dashboard_top_info(userid, course_id):
 
 def obter_opcoes_dropdown_cursos():
     try:
-        cursos = qg.fetch_user_course_data()
+        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
+        logger.debug(f"[DROPDOWN] Total de registos carregados: {len(cursos)}")
+
         cursos_validos = cursos[cursos['course_name'].notna()]
+        logger.debug(f"[DROPDOWN] Cursos válidos com nome: {len(cursos_validos)}")
 
         opcoes = []
 
         # Elimina cursos duplicados (caso o mesmo curso apareça para vários users)
         cursos_unicos = cursos_validos.drop_duplicates(subset=["course_name"])
+        logger.debug(f"[DROPDOWN] Cursos únicos encontrados: {len(cursos_unicos)}")
 
         for _, linha in cursos_unicos.iterrows():
             nome = linha['course_name']
@@ -181,21 +209,21 @@ def obter_opcoes_dropdown_cursos():
                 "value": nome
             })
 
+        logger.info(f"[DROPDOWN] {len(opcoes)} opções de curso preparadas para o dropdown.")
         return opcoes
 
     except Exception as e:
-        print("[ERRO] (obter_opcoes_dropdown_cursos):", e)
+        logger.exception(f"[ERRO] (obter_opcoes_dropdown_cursos): {e}")
         return []
-
 
 # =========================
 # Layout principal
 # =========================
 
-def layout(userid, course_id):
+def layout(user_id, course_id):
     try:
-        dados_completions = pd.DataFrame(qg.fetch_all_completions())
-        dados_cursos = pd.DataFrame(qg.fetch_user_course_data())
+        dados_completions = pd.DataFrame(qg.fetch_all_grade_progress_local())
+        dados_cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
         linhas_por_ano, pie_por_ano, inscritos_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
 
         store_data = {
@@ -207,7 +235,7 @@ def layout(userid, course_id):
         anos_disponiveis = sorted(pie_por_ano.keys())
         ano_inicial = anos_disponiveis[-1] if anos_disponiveis else ""
 
-        nome, papel, curso = get_dashboard_top_info(userid, course_id)
+        nome, papel, curso = get_dashboard_top_info(user_id, course_id)
         ano_curso_atual = extrair_ano_letivo(curso) or ""
         dropdown_cursos = obter_opcoes_dropdown_cursos()
 

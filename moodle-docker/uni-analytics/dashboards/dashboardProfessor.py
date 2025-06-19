@@ -10,14 +10,14 @@ import re
 import unicodedata
 from datetime import datetime
 from collections import defaultdict 
-
+from utils.logger import logger
 
 # =========================
 # Funções de lógica modular
 # =========================
 
 def normalizar_nome_item(texto):
-    """Remove acentos e normaliza o nome dos itens."""
+    logger.debug("normalizar_nome_item: recebido texto=%r", texto)
     if not texto:
         return ""
     texto = ''.join(
@@ -29,30 +29,28 @@ def normalizar_nome_item(texto):
     return texto
 
 def alunos_inscritos_uc(cursos, course_id):
+    logger.debug("alunos_inscritos_uc: filtrando cursos para course_id=%s", course_id)
     cursos_df = pd.DataFrame(cursos)
     return cursos_df[
-        (cursos_df['courseid'] == course_id) &
+        (cursos_df['course_id'] == course_id) &
         (cursos_df['role'] == 'student')
-    ]['userid'].unique()
+    ]['user_id'].unique()
 
 def filtrar_alunos_avaliacao_continua(cursos, course_id):
+    logger.debug("filtrar_alunos_avaliacao_continua: course_id=%s", course_id)
     cursos_df = pd.DataFrame(cursos)
     estudantes = cursos_df[
-        (cursos_df['courseid'] == course_id) &
+        (cursos_df['course_id'] == course_id) &
         (cursos_df['role'] == 'student')
     ].copy()
-    estudantes['grupo'] = estudantes['groupname'].fillna('').str.lower()
-    return estudantes[estudantes['grupo'].str.contains('aval')]['userid'].unique()
+    estudantes['grupo'] = estudantes['group_name'].fillna('').str.lower()
+    return estudantes[estudantes['grupo'].str.contains('aval')]['user_id'].unique()
 
 def contar_conteudos_publicados(dados, professor_id, course_id):
+    logger.debug("contar_conteudos_publicados: professor %s, course_id %s", professor_id, course_id)
     tipos = {
-        'resource': 'Ficheiros',
-        'page': 'Páginas',
-        'url': 'Links',
-        'book': 'Livros',
-        'folder': 'Pastas',
-        'quiz': 'Quizzes',
-        'lesson': 'Lições' 
+        'resource': 'Ficheiros', 'page': 'Páginas', 'url': 'Links',
+        'book': 'Livros', 'folder': 'Pastas', 'quiz': 'Quizzes', 'lesson': 'Lições'
     }
     contagem = {nome: 0 for nome in tipos.values()}
     for d in dados:
@@ -60,177 +58,124 @@ def contar_conteudos_publicados(dados, professor_id, course_id):
             tipo_raw = d.get('module_type')
             if tipo_raw in tipos:
                 contagem[tipos[tipo_raw]] += 1
+    logger.debug("contagem de conteúdos publicada: %r", contagem)
     return contagem
 
 def contar_topicos_respostas_professor(dados, professor_id, course_id):
+    logger.debug("contar_topicos_respostas_professor: professor %s, course_id %s", professor_id, course_id)
     criados = sum(1 for d in dados if d['user_id'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'topic')
     respondidos = sum(1 for d in dados if d['user_id'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'reply')
+    logger.debug("tópicos criados=%d, respondidos=%d", criados, respondidos)
     return criados, respondidos
 
-def calcular_velocidade_resposta(posts, professor_id, course_id):  
+def calcular_velocidade_resposta(posts, professor_id, course_id):
+    logger.debug("calcular_velocidade_resposta: professor %s, course_id %s", professor_id, course_id)
     posts_curso = [p for p in posts if p["course_id"] == course_id]
-
-    # Indexar posts por ID
-    posts_por_id = {p["post_id"]: p for p in posts_curso}
-
-    # Filtrar TODOS os posts feitos por aluno
-    posts_aluno = [
-        p for p in posts_curso 
-        if "student" in (p.get("role") or "").lower()
-    ]
-
+    posts_aluno = [p for p in posts_curso if "student" in (p.get("role") or "").lower()]
     tempos_resposta = []
-
     for post_aluno in posts_aluno:
-        post_id = post_aluno["post_id"]
         tempo_post = datetime.fromtimestamp(post_aluno["time_created"])
-
-        # Procurar respostas diretas feitas por professor
-        respostas_professor = [
-            p for p in posts_curso
-            if p.get("parent") == post_id and p["user_id"] == professor_id
-        ]
-
+        respostas_professor = [p for p in posts_curso if p.get("parent") == post_aluno["post_id"] and p["user_id"] == professor_id]
         if respostas_professor:
-            resposta = min(respostas_professor, key=lambda p: p["time_created"])
-            tempo_resposta = datetime.fromtimestamp(resposta["time_created"])
-            delta_dias = (tempo_resposta - tempo_post).total_seconds() / (3600 * 24)
-            tempos_resposta.append(delta_dias)
-
+            tempo_resposta = datetime.fromtimestamp(min(respostas_professor, key=lambda p: p["time_created"])["time_created"])
+            delta = (tempo_resposta - tempo_post).total_seconds() / (3600 * 24)
+            tempos_resposta.append(delta)
     if tempos_resposta:
-        media_dias = sum(tempos_resposta) / len(tempos_resposta) 
-        dias = int(media_dias)
-        horas = round((media_dias - dias) * 24)
-        return f"{dias} dia{'s' if dias != 1 else ''} e {horas} horas"
-    else:
-        return None
+        media = sum(tempos_resposta) / len(tempos_resposta)
+        dias = int(media); horas = round((media - dias) * 24)
+        resultado = f"{dias} dia{'s' if dias != 1 else ''} e {horas} horas"
+        logger.debug("velocidade de resposta calculada: %s", resultado)
+        return resultado
+    logger.debug("nenhuma resposta encontrada para cálculo de velocidade")
+    return None
 
 def calcular_media_acessos_semanal(acessos, professor_id, course_id):
-    # Filtra apenas acessos do professor ao curso
-    acessos_prof = [
-        a for a in acessos
-        if a["userid"] == professor_id and a["courseid"] == course_id
-    ]
-
-    # Agrupa por ano+semana
+    logger.debug("calcular_media_acessos_semanal: professor %s, course_id %s", professor_id, course_id)
+    acessos_prof = [a for a in acessos if a["user_id"] == professor_id and a["course_id"] == course_id]
     semanas = defaultdict(int)
-    for acesso in acessos_prof:
-        dt = acesso["access_time"]
+    for a in acessos_prof:
+        dt = a["access_time"]
         if isinstance(dt, str):
             dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
-        ano_semana = dt.strftime("%Y-%W")
-        semanas[ano_semana] += 1
-
-    if semanas:
-        media = sum(semanas.values()) / len(semanas)
-        return round(media, 1)
-    else:
-        return 0
+        semanas[dt.strftime("%Y-%W")] += 1
+    media = round(sum(semanas.values()) / len(semanas), 1) if semanas else 0
+    logger.debug("média semanal de acessos: %s", media)
+    return media
 
 def calcular_distribuicao_desempenho_global_professor(completions, cursos, course_id):
-    # Converte as listas recebidas para DataFrame
+    logger.debug("calcular_distribuicao_desempenho_global_professor: course_id %s", course_id)
     completions_df = pd.DataFrame(completions)
     cursos_df = pd.DataFrame(cursos)
-
     distribuicao = {"Crítico": 0, "Em Risco": 0, "Expectável": 0}
-    
-    # Filtrar apenas alunos inscritos como estudantes no curso
-    estudantes = cursos_df[
-        (cursos_df['courseid'] == course_id) &
-        (cursos_df['role'] == 'student')
-    ].copy()
-
-    # Normalizar nome do grupo
-    estudantes['grupo'] = estudantes['groupname'].fillna('').str.lower()
-    
-    # Filtrar só os da Avaliação Contínua
-    alunos_aval = estudantes[estudantes['grupo'].str.contains('aval')]
-    alunos_ids = alunos_aval['userid'].unique()
-
+    estudantes = cursos_df[(cursos_df['course_id'] == course_id) & (cursos_df['role'] == 'student')].copy()
+    estudantes['grupo'] = estudantes['group_name'].fillna('').str.lower()
+    alunos_ids = estudantes[estudantes['grupo'].str.contains('aval')]['user_id'].unique()
     for aluno_id in alunos_ids:
-        # Filtrar todas as notas deste aluno no curso
-        notas_aluno = completions_df[
-            (completions_df['userid'] == aluno_id) &
-            (completions_df['course_id'] == course_id) &
-            (completions_df['module_type'] == 'assign')
-        ]
-
         soma = 0.0
-        for _, linha in notas_aluno.iterrows():
-            nome_item = (linha.get("itemname") or "").lower()
-            if "efolio" in nome_item:
-                try:
-                    soma += float(linha["finalgrade"])
-                except (ValueError, TypeError):
-                    continue
-
-        # Classificar aluno
-        if soma < 3.5:
-            classificacao = "Crítico"
-        elif soma < 4.5:
-            classificacao = "Em Risco"
-        else:
-            classificacao = "Expectável"
-
-        distribuicao[classificacao] += 1
-
+        notas_aluno = completions_df[
+            (completions_df['user_id']==aluno_id)&(completions_df['course_id']==course_id)&(completions_df['module_type']=='assign')]
+        for _, l in notas_aluno.iterrows():
+            if "efolio" in (l.get("item_name") or "").lower():
+                try: soma += float(l["final_grade"])
+                except: continue
+        categoria = "Crítico" if soma < 3.5 else "Em Risco" if soma < 4.5 else "Expectável"
+        distribuicao[categoria] += 1
+    logger.debug("distribuição de desempenho: %r", distribuicao)
     return distribuicao
 
-def get_dashboard_top_info(userid, course_id):
+def get_dashboard_top_info(user_id, course_id):
+    logger.debug("get_dashboard_top_info: user %s, course_id %s", user_id, course_id)
     try:
-        cursos = qg.fetch_user_course_data()
-
-        # Filtra apenas pelo utilizador e curso atual
-        linha = cursos[(cursos['userid'] == userid) & (cursos['courseid'] == course_id)].head(1)
-
+        cursos = qg.fetch_all_user_course_data_local()
+        df = pd.DataFrame(cursos)
+        linha = df[(df['user_id'] == user_id) & (df['course_id'] == course_id)].head(1)
         if not linha.empty:
             nome = linha['name'].values[0]
-            papel_raw = linha['role'].values[0].lower()
-            papel = "ALUNO" if "student" in papel_raw else "PROFESSOR"
+            papel = "ALUNO" if "student" in linha['role'].values[0].lower() else "PROFESSOR"
             nome_curso = linha['course_name'].values[0]
         else:
-            nome = "Utilizador Desconhecido"
-            papel = "-"
-            nome_curso = f"{course_id} - UC Desconhecida"
-
+            nome, papel, nome_curso = "Utilizador Desconhecido", "-", f"{course_id} - UC Desconhecida"
+        logger.debug("top info: nome=%s, papel=%s, curso=%s", nome, papel, nome_curso)
         return nome, papel, nome_curso
-
     except Exception as e:
-        print("[ERRO] (get_dashboard_top_info):", e)
+        logger.error("erro em get_dashboard_top_info: %s", e, exc_info=True)
         return "Erro", "Erro", "Erro"
 
 def extrair_ano_letivo(course_name):
-    
+    logger.debug("extrair_ano_letivo: course_name=%s", course_name)
     match = re.search(r'_(\d{2})', course_name)
     if match:
-        sufixo = int(match.group(1))
-        ano_inicio = 2000 + sufixo
-        return f"{ano_inicio}/{ano_inicio + 1}"
+        ano_inicio = 2000 + int(match.group(1))
+        resultado = f"{ano_inicio}/{ano_inicio+1}"
+        logger.debug("ano letivo extraído: %s", resultado)
+        return resultado
+    logger.debug("ano letivo não encontrado em course_name")
     return None
 
 def obter_ultimo_acesso_uc(acessos, professor_id, course_id):
-    acessos_filtrados = [
-        a for a in acessos
-        if a["userid"] == professor_id and a["courseid"] == course_id
-    ]
-    if not acessos_filtrados:
+    logger.debug("obter_ultimo_acesso_uc: professor %s, course_id %s", professor_id, course_id)
+    acessos_prof = [a for a in acessos if a["user_id"] == professor_id and a["course_id"] == course_id]
+    if not acessos_prof:
+        logger.debug("nenhum acesso encontrado")
         return "—"
-    mais_recente = max(acessos_filtrados, key=lambda a: a["access_time"])
+    mais_recente = max(acessos_prof, key=lambda a: a["access_time"])
     dt = mais_recente["access_time"]
     if isinstance(dt, str):
         dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
-    return dt.strftime("%d/%m/%Y")
+    res = dt.strftime("%d/%m/%Y")
+    logger.debug("último acesso: %s", res)
+    return res
 
 def calcular_medias_efolios(completions, cursos, course_id):
+    logger.debug("calcular_medias_efolios: início para course_id=%s", course_id)
     completions_df = pd.DataFrame(completions)
     alunos_aval = filtrar_alunos_avaliacao_continua(cursos, course_id)
 
-    # Listas de notas
     notas_a, notas_b, notas_c = [], [], []
 
     for aluno_id in alunos_aval:
         notas_aluno = completions_df[
-            (completions_df['userid'] == aluno_id) &
+            (completions_df['user_id'] == aluno_id) &
             (completions_df['course_id'] == course_id) &
             (completions_df['module_type'] == 'assign')
         ]
@@ -238,8 +183,8 @@ def calcular_medias_efolios(completions, cursos, course_id):
         nota_a = nota_b = nota_c = 0.0
 
         for _, row in notas_aluno.iterrows():
-            nome = normalizar_nome_item(row.get("itemname"))
-            nota = float(row.get("finalgrade") or 0)
+            nome = normalizar_nome_item(row.get("item_name"))
+            nota = float(row.get("final_grade") or 0)
 
             if "efolioa" in nome.replace(" ", ""):
                 nota_a = nota
@@ -265,10 +210,11 @@ def calcular_medias_efolios(completions, cursos, course_id):
         resultado["E-fólio C"] = media(notas_c)
 
     resultado["Total"] = round(sum(resultado.values()), 1)
+    logger.debug("calcular_medias_efolios: resultado=%r", resultado)
     return resultado
 
-
 def calcular_taxa_conclusao_efolios(completions, cursos, course_id):
+    logger.debug("calcular_taxa_conclusao_efolios: início para course_id=%s", course_id)
     completions_df = pd.DataFrame(completions)
     alunos_aval = filtrar_alunos_avaliacao_continua(cursos, course_id)
 
@@ -276,17 +222,17 @@ def calcular_taxa_conclusao_efolios(completions, cursos, course_id):
 
     for aluno_id in alunos_aval:
         notas_aluno = completions_df[
-            (completions_df["userid"] == aluno_id) &
+            (completions_df["user_id"] == aluno_id) &
             (completions_df["course_id"] == course_id) &
             (completions_df["module_type"] == "assign")
         ]
 
-        estado_aluno_a = estado_aluno_b = estado_aluno_c = 0  # ← por default: 0 (não entregou)
+        estado_aluno_a = estado_aluno_b = estado_aluno_c = 0
 
         for _, row in notas_aluno.iterrows():
-            nome = normalizar_nome_item(row.get("itemname") or "")
+            nome = normalizar_nome_item(row.get("item_name") or "")
             nome_sanitizado = nome.replace(" ", "")
-            completion = int(row.get("completionstate") or 0)
+            completion = int(row.get("completion_state") or 0)
 
             if "efolioa" in nome_sanitizado:
                 estado_aluno_a = completion
@@ -295,7 +241,7 @@ def calcular_taxa_conclusao_efolios(completions, cursos, course_id):
             elif "efolioc" in nome_sanitizado:
                 estado_aluno_c = completion
             elif "global" in nome_sanitizado:
-                continue  # exclui global
+                continue
 
         estado_a.append(estado_aluno_a)
         estado_b.append(estado_aluno_b)
@@ -314,12 +260,16 @@ def calcular_taxa_conclusao_efolios(completions, cursos, course_id):
 
     media_final = round(sum(resultado.values()) / len(resultado), 1) if resultado else 0.0
 
-    return {
+    final = {
         "por_atividade": resultado,
         "media": media_final
     }
 
+    logger.debug("calcular_taxa_conclusao_efolios: resultado=%r", final)
+    return final
+
 def calcular_taxa_conclusao_formativas(completions, cursos, course_id):
+    logger.debug("calcular_taxa_conclusao_formativas: início para course_id=%s", course_id)
     completions_df = pd.DataFrame(completions)
     alunos_ids = alunos_inscritos_uc(cursos, course_id)
 
@@ -335,46 +285,45 @@ def calcular_taxa_conclusao_formativas(completions, cursos, course_id):
         if completions_tipo.empty:
             continue
 
-        atividades_ids = completions_tipo['coursemodule_id'].unique()
-
+        atividades_ids = completions_tipo['course_module_id'].unique()
         total_atividades = len(atividades_ids)
         total_alunos = len(alunos_ids)
 
         if total_atividades == 0 or total_alunos == 0:
             continue
 
-        # Total de interações válidas
         interacoes_validas = completions_tipo[
-            (completions_tipo['completionstate'] == 1) &
-            (completions_tipo['userid'].isin(alunos_ids))
+            (completions_tipo['completion_state'] == 1) &
+            (completions_tipo['user_id'].isin(alunos_ids))
         ]
 
         total_interacoes = len(interacoes_validas)
-
-        # Taxa de conclusão por tipo
         total_possivel = total_atividades * total_alunos
         percentagem = round((total_interacoes / total_possivel) * 100, 1)
-
         totais_percentuais.append(percentagem)
 
-    # Média das percentagens de todos os tipos
     media_final = round(sum(totais_percentuais) / len(totais_percentuais)) if totais_percentuais else 0
-
+    logger.debug("calcular_taxa_conclusao_formativas: média final=%s", media_final)
     return media_final
 
 def calcular_ultima_participacao_forum(posts, professor_id, course_id):
+    logger.debug("calcular_ultima_participacao_forum: início para professor_id=%s, course_id=%s", professor_id, course_id)
     posts_professor = [
         p for p in posts
         if p["user_id"] == professor_id and p["course_id"] == course_id
     ]
     if not posts_professor:
+        logger.debug("calcular_ultima_participacao_forum: sem participações")
         return "—"
 
     mais_recente = max(posts_professor, key=lambda p: p["time_created"])
     dt = datetime.fromtimestamp(mais_recente["time_created"])
-    return dt.strftime("%d/%m/%Y %H:%M")
+    resultado = dt.strftime("%d/%m/%Y %H:%M")
+    logger.debug("calcular_ultima_participacao_forum: última participação=%s", resultado)
+    return resultado
 
 def gerar_barra_conclusao(label, valor):
+    logger.debug("gerar_barra_conclusao: label=%s, valor=%s%%", label, valor)
     return html.Div(className="barra-container", children=[
         html.Div(label, className="barra-label"),
         html.Div(className="barra-fundo", children=[
@@ -387,6 +336,7 @@ def gerar_barra_conclusao(label, valor):
     ])
 
 def gerar_semi_circulo(label, valor):
+    logger.debug("gerar_semi_circulo: label=%s, valor=%s", label, valor)
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=valor,
@@ -412,6 +362,7 @@ def gerar_semi_circulo(label, valor):
     )
 
 def bloco_conclusao_linha(nome, valor_gauge, labels, dados_conclusao):
+    logger.debug("bloco_conclusao_linha: nome=%s, valor_gauge=%s, labels=%s", nome, valor_gauge, labels)
     return html.Div(className="bloco-conclusao-linha", children=[
         html.Div(className="bloco-conclusao-gauge", children=[
             gerar_semi_circulo(nome, valor_gauge)
@@ -423,6 +374,7 @@ def bloco_conclusao_linha(nome, valor_gauge, labels, dados_conclusao):
     ])
 
 def gerar_gauge_dashboard_professor(titulo, valor, cor):
+    logger.debug("gerar_gauge_dashboard_professor: titulo=%s, valor=%s, cor=%s", titulo, valor, cor)
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=valor,
@@ -451,21 +403,21 @@ def gerar_gauge_dashboard_professor(titulo, valor, cor):
 
 def layout(professor_id, course_id):
     try:
-        dados_conteudos = qp.fetch_conteudos_disponibilizados()
+        dados_conteudos = qp.fetch_conteudos_disponibilizados_local()
         contagem = contar_conteudos_publicados(dados_conteudos, professor_id, course_id)
 
         dados_forum = qg.fetch_all_forum_posts_local()
-        dados_cursos = qg.fetch_user_course_data() 
+        dados_cursos = qg.fetch_all_user_course_data_local() 
 
         topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, professor_id, course_id)
         velocidade = calcular_velocidade_resposta(dados_forum, professor_id, course_id)
         ultima_participacao = calcular_ultima_participacao_forum(dados_forum, professor_id, course_id)
 
-        dados_acessos = qp.fetch_course_access_logs()
+        dados_acessos = qp.fetch_course_access_logs_local()
         media_acessos = calcular_media_acessos_semanal(dados_acessos, professor_id, course_id)
         ultimo_acesso = obter_ultimo_acesso_uc(dados_acessos, professor_id, course_id)
 
-        dados_completions = qg.fetch_all_completions()
+        dados_completions = qg.fetch_all_grade_progress_local()
         dados_medias = calcular_medias_efolios(dados_completions, dados_cursos, course_id)
         distribuicao = calcular_distribuicao_desempenho_global_professor(dados_completions, dados_cursos, course_id)
 
@@ -611,13 +563,11 @@ def render_card_medias_classificacao(dados):
         dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
     ])
 
-
 def render_card_mini_graficos(medias, distribuicao):
     return html.Div(className="bloco-mini-graficos", children=[
         render_card_medias_classificacao(medias),
         render_card_estado_global(distribuicao)
     ])
-
 
 def render_card_estado_global(distribuicao):
     # Ordem garantida
@@ -643,8 +593,8 @@ def render_card_estado_global(distribuicao):
         dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
     ])
 
-def render_topo_geral(userid, course_id):
-    nome, papel, curso = get_dashboard_top_info(userid, course_id)
+def render_topo_geral(user_id, course_id):
+    nome, papel, curso = get_dashboard_top_info(user_id, course_id)
     ano_curso_atual = extrair_ano_letivo(curso) or ""
     return html.Div(className="topo-dashboard", children=[
         html.Div(className="linha-superior", children=[

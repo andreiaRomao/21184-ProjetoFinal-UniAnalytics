@@ -3,26 +3,28 @@ from db.moodleConnection import connect_to_moodle_db
 from db.uniAnalytics import connect_to_uni_analytics_db
 
 ################### Moodle Queries ###################
-def fetch_user_course_data():
+# Função para obter dados do Moodle dos cursos e alunos
+def fetch_all_user_course_data():
     conn = connect_to_moodle_db()
     query = """
         SELECT
-          u.id AS userid,
+          u.id AS user_id,
           u.email AS email,
           CONCAT(u.firstname, ' ', u.lastname) AS name,
           r.shortname AS role,
-          c.id AS courseid,
+          c.id AS course_id,
           c.fullname AS course_name,
-          MAX(g.name) AS groupname
+          MAX(g.name) AS group_name,
+          u.timecreated AS time_created
         FROM mdl_user u
         JOIN mdl_role_assignments ra ON ra.userid = u.id
-        JOIN mdl_context ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50  -- 50 = nível de curso
+        JOIN mdl_context ctx ON ctx.id = ra.contextid AND ctx.contextlevel = 50
         JOIN mdl_course c ON c.id = ctx.instanceid
         JOIN mdl_role r ON r.id = ra.roleid
         LEFT JOIN mdl_groups_members gm ON gm.userid = u.id
         LEFT JOIN mdl_groups g ON g.id = gm.groupid AND g.courseid = c.id
-        GROUP BY u.id, u.email, name, r.shortname, c.id, c.fullname
-        ORDER BY courseid, role, name;              
+        GROUP BY u.id, u.email, name, r.shortname, c.id, c.fullname, u.timecreated
+        ORDER BY course_id, role, name;           
     """
     cursor = conn.cursor()
     cursor.execute(query)
@@ -70,8 +72,8 @@ def fetch_all_forum_posts():
         conn.close()
         return []
 
-def fetch_all_completions():
-    from db.moodleConnection import connect_to_moodle_db
+# Função para obter dados do Moodle das notas e progresso dos alunos
+def fetch_all_grade_progress():
     conn = connect_to_moodle_db()
     query = """      
     WITH grupo_unico AS (
@@ -81,16 +83,16 @@ def fetch_all_completions():
     )
     
     SELECT
-        cm.id AS coursemodule_id,
+        cm.id AS course_module_id,
         cm.course AS course_id,
-        cm.added AS timecreated,
+        cm.added AS time_created,
         m.name AS module_type,
-        cmc.userid,
-        cmc.completionstate,
-        COALESCE(gi.itemname, CONCAT('[ID ', cm.id, ']')) AS itemname,
-        gu.groupid,
-        gu.groupname,
-        gg.finalgrade
+        cmc.userid AS user_id,
+        cmc.completionstate AS completion_state,
+        COALESCE(gi.itemname, CONCAT('[ID ', cm.id, ']')) AS item_name,
+        gu.groupid AS group_id,
+        gu.groupname AS group_name,
+        gg.finalgrade AS final_grade
     FROM mdl_course_modules cm
     JOIN mdl_modules m 
         ON m.id = cm.module
@@ -134,4 +136,49 @@ def fetch_all_forum_posts_local():
 
     # Converter para lista de dicionários
     colunas = ["post_id", "user_id", "role", "course_id", "post_type", "parent", "time_created"]
+    return [dict(zip(colunas, row)) for row in rows]
+
+# Função para obter dados locais de progresso e notas dos alunos
+def fetch_all_grade_progress_local():
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT course_module_id, course_id, module_type, user_id,
+               completion_state, item_name, group_id, group_name,
+               final_grade, time_created, time_updated
+        FROM grade_progress
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Converter para lista de dicionários
+    colunas = [
+        "course_module_id", "course_id", "module_type", "user_id",
+        "completion_state", "item_name", "group_id", "group_name",
+        "final_grade", "time_created", "time_updated"
+    ]
+    return [dict(zip(colunas, row)) for row in rows]
+
+# Função para obter dados locais de cursos e alunos
+def fetch_all_user_course_data_local():
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            user_id,
+            email,
+            name,
+            role,
+            course_id,
+            course_name,
+            group_name, 
+            time_created, 
+            time_updated
+        FROM course_data
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Converter para lista de dicionários
+    colunas = ["user_id", "email", "name", "role", "course_id", "course_name", "group_name", "time_created", "time_updated"]
     return [dict(zip(colunas, row)) for row in rows]

@@ -79,17 +79,17 @@ def init_uni_analytics_db():
     # Tabela de progresso e notas dos alunos
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS grade_progress (
-            coursemodule_id INTEGER NOT NULL,
+            course_module_id INTEGER NOT NULL,
             course_id INTEGER NOT NULL,
             module_type TEXT NOT NULL,
-            userid INTEGER NOT NULL,
-            completionstate INTEGER,
-            itemname TEXT,
-            groupid INTEGER,
-            groupname TEXT,
-            finalgrade REAL,
-            timecreated DATETIME NOT NULL,
-            lastrefreshdatetime DATETIME
+            user_id INTEGER NOT NULL,
+            completion_state INTEGER,
+            item_name TEXT,
+            group_id INTEGER,
+            group_name TEXT,
+            final_grade REAL,
+            time_created DATETIME,
+            time_updated DATETIME
         );
     """)
 
@@ -122,5 +122,43 @@ def init_uni_analytics_db():
         );
     """)
 
+    # Tabela com os dados dos cursos e alunos
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS course_data (
+            user_id INTEGER NOT NULL,
+            email TEXT NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            course_id INTEGER NOT NULL,
+            course_name TEXT NOT NULL,
+            group_name TEXT,
+            time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+            time_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Tabela para os conteúdos disponibilizados pelos professores
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conteudos_disponibilizados (
+            course_module_id INTEGER NOT NULL,
+            course_id INTEGER NOT NULL,
+            module_type TEXT NOT NULL,
+            time_created DATETIME NOT NULL,
+            time_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Tabela para os logs de acesso ao curso
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS course_access_logs (
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            course_id INTEGER NOT NULL,
+            course_name TEXT NOT NULL,
+            access_time DATETIME NOT NULL,
+            time_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
     conn.commit()
     conn.close()
