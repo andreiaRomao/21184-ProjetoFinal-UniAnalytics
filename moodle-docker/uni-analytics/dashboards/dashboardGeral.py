@@ -1,6 +1,7 @@
 from dash import html, dcc, Input, Output, State
 from dash_iconify import DashIconify
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import queries.queriesComuns as qg
 import traceback
@@ -446,6 +447,28 @@ def construir_figura_pie(pie_por_ano, ano):
 
     ordem = ["Efolio Global", "Efolio Recurso", "Exame", "Exame Recurso"]
     dados_ordenados = {k: dados[k] for k in ordem if k in dados}
+
+    # Verifica se não há dados válidos
+    if not dados_ordenados or sum(dados_ordenados.values()) == 0:
+        fig = go.Figure()
+        fig.update_layout(
+            annotations=[
+                dict(
+                    text="Sem dados suficientes para gerar o gráfico.",
+                    xref="paper", yref="paper",
+                    x=0.5, y=0.5,
+                    showarrow=False,
+                    font=dict(size=14, color="#2c3e50")
+                )
+            ],
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            paper_bgcolor="#f4faf4",
+            plot_bgcolor="#f4faf4",
+            margin=dict(t=20, b=20, l=20, r=20),
+            height=220
+        )
+        return fig
 
     df = pd.DataFrame({
         "Tipo": list(dados_ordenados.keys()),
