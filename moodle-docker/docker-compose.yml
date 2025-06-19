@@ -53,7 +53,7 @@ services:
     volumes:
       - ./uni-analytics:/app
       - ./uni-analytics/logs:/app/logs
-      - ./uni-analytics/db/backups:/app/db/backups
+      - ./uni-analytics/backups:/app/backups
     depends_on:
       - db
     environment:
