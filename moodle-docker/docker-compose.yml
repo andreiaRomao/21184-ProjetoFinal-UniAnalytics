@@ -53,6 +53,7 @@ services:
     volumes:
       - ./uni-analytics:/app
       - ./uni-analytics/logs:/app/logs
+      - ./uni-analytics/db/backups:/app/db/backups
     depends_on:
       - db
     environment:
@@ -78,6 +79,10 @@ services:
       - VALIDATION_HOUR=01
       - VALIDATION_MINUTE=00
 
+      # Definição da hora de execução do backup
+      - BACKUP_HOUR=02
+      - BACKUP_MINUTE=00
+      - BACKUP_RETENTION_DAYS=7
     command: ["python", "scheduler.py"]  # Ficheiro que corre continuamente no fundo
 
   # Base de dados MySQL
