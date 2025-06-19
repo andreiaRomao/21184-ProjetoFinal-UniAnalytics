@@ -85,12 +85,12 @@ def listar_formularios_disponiveis():
             if pre:
                 logger.debug(f"[Formulários] Disponível Pré: {texto_base} (item_id={item_id})")
                 componentes.append(
-                    dcc.Link(f"→ Inquérito Pré: {texto_base}", href=f"/forms/formularioPre?item_id={item_id}", style={"display": "block", "margin": "8px"})
+                    dcc.Link(f"→ Inquérito Pré: {texto_base}", href=f"/forms/formularioPre?item_id={item_id}", className="btn-suave")
                 )
             if pos:
                 logger.debug(f"[Formulários] Disponível Pós: {texto_base} (item_id={item_id})")
                 componentes.append(
-                    dcc.Link(f"→ Inquérito Pós: {texto_base}", href=f"/forms/formularioPos?item_id={item_id}", style={"display": "block", "margin": "8px"})
+                    dcc.Link(f"→ Inquérito Pós: {texto_base}", href=f"/forms/formularioPos?item_id={item_id}", className="btn-suave")
                 )
 
         if not componentes:
@@ -98,7 +98,7 @@ def listar_formularios_disponiveis():
             return html.Div("Nenhum formulário de avaliação disponível neste momento.")
 
         return html.Div([
-            html.H3("Formulários de Avaliação Disponíveis"),
+            html.H3("Formulários de Avaliação Disponíveis", className="home-bloco-titulo"),
             html.Div(componentes)
         ])
     

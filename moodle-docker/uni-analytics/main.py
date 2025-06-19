@@ -1,3 +1,5 @@
+# Main inicial
+
 import dash
 from dash import html, dcc, Input, Output, State, ctx, no_update
 from dashboards import dashboardGeral, dashboardAluno, dashboardProfessor, dashboardPre, dashboardPos
@@ -85,40 +87,63 @@ def display_page(pathname, search):
     item_id = int(query_params.get("item_id", [0])[0])  # Usa 0 por omissão
 
     if pathname in ["/", "/home"]:
-        links = []
+        links_dash = []
+        blocos_formularios = []
 
-        # Adicionar o link do Dashboard Geral para todos
-        links.append(dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", style={"display": "block", "margin": "10px"}))
-
-        # Adicionar links específicos com base no papel do utilizador
+        # Dashboards
+        links_dash.append(dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", className="btn-suave"))
         if user_role == "admin":
-            links.extend([
-                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
+            links_dash.extend([
+                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", className="btn-suave"),
+                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", className="btn-suave"),
+                dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", className="btn-suave"),
+                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
             ])
         elif user_role == "professor":
-            # links.append([
-            links.extend([
-                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
-            ])   
-        elif user_role == "aluno":
-            links.extend([
-                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", style={"display": "block", "margin": "10px"}),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", style={"display": "block", "margin": "10px"})
+            links_dash.extend([
+                dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", className="btn-suave"),
+                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
             ])
-            # Adiciona os formulários disponíveis dinamicamente
-            links.append(formularioMain.listar_formularios_disponiveis())
+        elif user_role == "aluno":
+            links_dash.extend([
+                dcc.Link("→ Dashboard Aluno", href="/dashboards/dashboardAluno", className="btn-suave"),
+                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
+                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
+            ])
+            blocos_formularios = [formularioMain.listar_formularios_disponiveis()]
 
+        # Verifica se existem formulários
+        tem_formularios = len(blocos_formularios) > 0
+
+        # Layout da página principal
         return html.Div([
-            html.H1("Bem-vindo ao Dashboard de Learning Analytics"),
-            html.Div(links)
+            html.Div([
+                html.Div("Bem-vindo ao Dashboard de Learning Analytics", className="dashboard-pre-titulo", style={"marginLeft": "250px"}),
+            ], style={"marginTop": "30px"}),
+        
+            html.Div(
+                className="linha-flex" if tem_formularios else "coluna-unica-central",
+                children=[
+                    html.Div(className="coluna-esquerda", children=[
+                        html.Div(className="card", children=[
+                            html.H3("Dashboards", className="home-bloco-titulo"),
+                            html.Div(
+                                style={"display": "flex", "flexDirection": "column", "gap": "10px"},
+                                children=links_dash
+                            )
+                        ])
+                    ])
+                ] + (
+                    [html.Div(className="coluna-direita", children=[
+                        html.Div(className="card", children=blocos_formularios)
+                    ])] if tem_formularios else []
+                )
+            )
         ])
+
+
 
     elif pathname == "/dashboards/dashboardGeral":
         return dashboardGeral.layout(user_id, course_id)
