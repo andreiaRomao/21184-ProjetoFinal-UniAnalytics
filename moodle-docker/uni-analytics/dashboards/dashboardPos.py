@@ -191,7 +191,7 @@ def get_valores_reais_sincrona(item_id):
     ordem_desejada = [
         "Muito útil",
         "Útil, mas com lacunas",
-        "Não existiu",
+        "Não aplicável",
         "Não foi útil"
     ]
 
@@ -218,25 +218,77 @@ def layout():
 
         html.Div(className="dashboard-pre-row", children=[
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Nível de preparação", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Nível de preparação", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra como os alunos classificaram o seu nível de preparação antes do e-fólio.\n"
+                        "Inclui categorias como:\n"
+                        "- Pouco preparado\n"
+                        "- Razoavelmente preparado\n"
+                        "- Muito preparado",
+                        className="tooltip-text"
+                    )
+                ]),
                 dcc.Graph(id="grafico_confianca_pos", config={"displayModeBar": False}, style={"height": "180px"})
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Nº de horas dedicadas", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Nº de horas dedicadas", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra o tempo total dedicado à realização do e-fólio por parte do aluno.\n"
+                        "Categorias consideradas:\n"
+                        "- Menos de 2h\n"
+                        "- Entre 2h a 5h\n"
+                        "- Entre 5h a 10h\n"
+                        "- Mais de 10h",
+                        className="tooltip-text"
+                    )
+                ]),
                 dcc.Graph(id="grafico_horas_pos", config={"displayModeBar": False}, style={"height": "180px"})
             ])
         ]),
         html.Div(className="dashboard-pre-row", children=[
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Expectativa desempenho [Nota]", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Expectativa desempenho [Nota]", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra a expectativa dos alunos em relação ao seu próprio desempenho no e-fólio, em termos de nota esperada.\n"
+                        "Categorias disponíveis:\n"
+                        "- Expectativa elevada\n"
+                        "- Expectativa moderada\n"
+                        "- Expectativa positiva\n"
+                        "- Expectativa muito baixa",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_expectativa")
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Grau de dificuldade", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Grau de dificuldade", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra a perceção dos alunos sobre o grau de dificuldade do e-fólio.\n"
+                        "Categorias possíveis:\n"
+                        "- Fácil\n"
+                        "- Moderado\n"
+                        "- Difícil",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_dificuldade")
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Esforço investido", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Esforço investido", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Reflete o nível de esforço dedicado pelo aluno na realização do e-fólio.\n"
+                        "Categorias possíveis:\n"
+                        "- Esforço máximo\n"
+                        "- Esforço razoável\n"
+                        "- Esforço insuficiente",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_esforco")
             ])
         ]),
@@ -244,11 +296,32 @@ def layout():
 
         html.Div(className="dashboard-pre-row", children=[
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Abrangência", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Abrangência", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Reflete se os recursos e conteúdos disponibilizados cobriram adequadamente os tópicos exigidos no e-fólio.\n"
+                        "Categorias possíveis:\n"
+                        "- Cobriram adequadamente\n"
+                        "- Parcialmente cobriram\n"
+                        "- Não cobriram os tópicos",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_abrangencia")
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Sessão Síncrona", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Sessão Síncrona", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Reflete a perceção sobre a utilidade da sessão síncrona associada ao e-fólio.\n"
+                        "Categorias possíveis:\n"
+                        "- Muito útil\n"
+                        "- Útil, mas com lacunas\n"
+                        "- Não foi útil\n"
+                        "- Não aplicável",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_sincrona")
             ])
         ])
@@ -537,7 +610,7 @@ def render_grafico_sincrona(valores_dict):
     categorias = [
         "Muito útil",
         "Útil, mas com lacunas",
-        "Não existiu",
+        "Não aplicável",
         "Não foi útil"
     ]
     cores = ["#90ee90", "#ffd700", "#d3d3d3", "#f08080"]

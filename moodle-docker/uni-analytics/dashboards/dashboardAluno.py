@@ -338,7 +338,7 @@ def gerar_dashboard_conteudo(user_id, course_id):
         ]),
 
         html.Div(children=[
-            html.H2("Informação Geral do aluno", style={
+            html.H2("Informação Geral do Aluno", style={
                 "fontSize": "26px",
                 "fontWeight": "bold",
                 "color": "#2c3e50",

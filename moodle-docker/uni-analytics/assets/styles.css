@@ -1541,3 +1541,8 @@ textarea::placeholder {
     visibility: visible;
     opacity: 1;
 }
+
+.tooltip-bloco .dashboard-pre-card-title {
+    text-align: center;
+    width: 100%;
+}

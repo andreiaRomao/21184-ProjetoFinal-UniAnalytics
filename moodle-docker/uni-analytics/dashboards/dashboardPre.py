@@ -9,6 +9,18 @@ import queries.formsComuns as qfcomuns
 from utils.logger import logger
 
 # =========================
+# DADOS MARTELADOS APAGAR!!!!
+# ========================
+
+def get_valores_martelados_sessao_sincrona_pre():
+    return {
+        "Muito útil": 35,
+        "Útil, mas com lacunas": 18,
+        "Não foi útil": 4,
+        "Ainda não se realizou": 12
+    }
+
+# =========================
 # Funções de lógica modular
 # ========================
 
@@ -26,6 +38,7 @@ def register_callbacks(app):
         Output("grafico_acessibilidade", "children"),
         Output("grafico_assertividade", "children"),
         Output("grafico_atividades", "children"),
+        Output("grafico_sessao_sincrona_pre", "children"),
         Output("info_total_respostas_pre", "children"),
         Input("dropdown_item", "value")
     )
@@ -41,6 +54,7 @@ def register_callbacks(app):
             render_grafico_acessibilidade(valores_aces),
             render_grafico_recursos(valores_assert),
             render_grafico_atividades(valores_ativ),
+            render_grafico_sessao_sincrona_pre(get_valores_martelados_sessao_sincrona_pre()),
             render_total_respostas_info_reais(item_id)
         )
 
@@ -138,19 +152,27 @@ def get_valores_reais_assertividade(item_id):
 
 def get_valores_reais_atividades(item_id):
     dados = qpre.pre_atividades_utilidade(item_id)
-    ordem_desejada = [
-        "Parcialmente úteis - correção",
-        "Parcialmente úteis - desatualizadas",
-        "Muito úteis",
-        "Parcialmente úteis - lacunas",
-        "Não realizou"
-    ]
-    contagem = {cat: 0 for cat in ordem_desejada}
-    for _, _, categoria, total in dados:
-        contagem[categoria] += total
 
-    logger.debug(f"[DASHBOARD_PRE] Atividades: {contagem}")
+    # Mapeamento dos nomes longos para os curtos desejados
+    legenda_curta = {
+        "Parcialmente úteis - correção": "Correção incorreta",
+        "Parcialmente úteis - desatualizadas": "Desatualizadas",
+        "Muito úteis": "Muito úteis",
+        "Parcialmente úteis - lacunas": "Lacunas de informação",
+        "Não realizou": "Não realizou"
+    }
+
+    # Iniciar contagem com as novas categorias curtas
+    contagem = {v: 0 for v in legenda_curta.values()}
+
+    for _, _, categoria, total in dados:
+        categoria_curta = legenda_curta.get(categoria, "Outro")
+        if categoria_curta in contagem:
+            contagem[categoria_curta] += total
+
+    logger.debug(f"[DASHBOARD_PRE] Atividades (mapeado): {contagem}")
     return contagem
+
 
 # =========================
 # Layout principal
@@ -169,11 +191,33 @@ def layout():
         
         html.Div(className="dashboard-pre-row", children=[
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Nível de preparação", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Nível de preparação", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra como os alunos classificaram o seu nível de preparação antes do e-fólio.\n"
+                        "Inclui categorias como:\n"
+                        "- Pouco preparado\n"
+                        "- Razoavelmente preparado\n"
+                        "- Muito preparado",
+                        className="tooltip-text"
+                    )
+                ]),
                 dcc.Graph(id="grafico_confianca_preparacao", config={"displayModeBar": False}, style={"height": "180px"})
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Nº Horas de Preparação", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Nº Horas de Preparação", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra quantas horas os alunos dizem ter dedicado à preparação para o e-fólio.\n"
+                        "As opções incluem:\n"
+                        "- Menos de 5h\n"
+                        "- 5 a 10h\n"
+                        "- 10 a 20h\n"
+                        "- 20 a 40h\n"
+                        "- Mais de 40h",
+                        className="tooltip-text"
+                    )
+                ]),
                 dcc.Graph(id="grafico_horas_preparacao", config={"displayModeBar": False}, style={"height": "180px"})
             ])
         ]),
@@ -182,16 +226,64 @@ def layout():
 
         html.Div(className="dashboard-pre-row", children=[
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Acessibilidade", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Acessibilidade", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Refere-se à facilidade com que os alunos conseguiram aceder e navegar pelos recursos da UC.\n"
+                        "As categorias incluem:\n"
+                        "- Acessíveis e bem organizados\n"
+                        "- Acessíveis, mas estrutura confusa\n"
+                        "- Pouco acessíveis e desorganizados",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_acessibilidade")
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Assertividade", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Assertividade", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra a perceção dos alunos sobre a utilidade dos recursos disponibilizados.\n"
+                        "As categorias incluem:\n"
+                        "- Muito úteis\n"
+                        "- Parcialmente úteis - lacunas\n"
+                        "- Pouco úteis - Necessitam revisão\n"
+                        "- Não utilizados",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_assertividade")
             ]),
             html.Div(className="dashboard-pre-card", children=[
-                html.H4("Atividades Formativas", className="dashboard-pre-card-title"),
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Atividades Formativas", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra a utilidade percebida das atividades formativas realizadas antes do e-fólio.\n"
+                        "As categorias incluem:\n"
+                        "- Muito úteis\n"
+                        "- Correção incorreta\n"
+						"- Desatualizadas\n"
+						"- Lacunas de informação\n"
+                        "- Não realizou",
+                        className="tooltip-text"
+                    )
+                ]),
                 html.Div(id="grafico_atividades")
+            ]),
+            html.Div(className="dashboard-pre-card", children=[  # Sessão Síncrona
+                html.Div(className="tooltip-bloco", children=[
+                    html.H4("Sessão Síncrona", className="tooltip-hover dashboard-pre-card-title"),
+                    html.Span(
+                        "Mostra a perceção dos alunos quanto à utilidade da sessão síncrona anterior ao e-fólio.\n"
+                        "As categorias incluem:\n"
+                        "- Muito útil\n"
+                        "- Útil, mas com lacunas\n"
+                        "- Não foi útil\n"
+                        "- Ainda não se realizou",
+                        className="tooltip-text"
+                    )
+                ]),
+                html.Div(id="grafico_sessao_sincrona_pre")
             ])
         ])
     ])
@@ -378,10 +470,10 @@ def render_grafico_recursos(valores_dict):
 
 def render_grafico_atividades(valores_dict):
     categorias = [
-        "Parcialmente úteis - correção",
-        "Parcialmente úteis - desatualizadas",
+        "Correção incorreta",
+        "Desatualizadas",
         "Muito úteis",
-        "Parcialmente úteis - lacunas",
+        "Lacunas de informação",
         "Não realizou"
     ]
     cores = ["#f7c59f", "#ffeb99", "#90ee90", "#ff9999", "#d3d3d3"]
@@ -394,6 +486,65 @@ def render_grafico_atividades(valores_dict):
 
     if not categorias:
         return html.Div("Sem dados suficientes para gerar o gráfico.", style={"textAlign": "center", "padding": "20px"})
+
+    fig = px.pie(
+        names=categorias,
+        values=valores,
+        hole=0.4,
+        color_discrete_sequence=cores
+    )
+
+    fig.update_layout(
+        showlegend=False,
+        margin=dict(t=20, b=0, l=20, r=20),
+        height=200,
+        paper_bgcolor="#f4faf4",
+        plot_bgcolor="#f4faf4",
+        font=dict(color="#2c3e50")
+    )
+
+    legenda = html.Div(className="dashboard-pre-legenda-2colunas", children=[
+        html.Div([
+            html.Span(style={"backgroundColor": cores[i]}, className="dashboard-pre-legenda-cor"),
+            html.Span(categorias[i])
+        ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
+    ])
+
+    return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px", "minHeight": "300px"}, children=[
+        dcc.Graph(figure=fig, config={"displayModeBar": False}),
+        legenda
+    ])
+
+def render_grafico_sessao_sincrona_pre(valores_dict):
+    categorias = [
+        "Muito útil",
+        "Útil, mas com lacunas",
+        "Não foi útil",
+        "Ainda não se realizou"
+    ]
+    cores = ["#90ee90", "#ffd700", "#f08080", "#d3d3d3"]
+    valores = [valores_dict.get(cat, 0) for cat in categorias]
+
+    # Verifica se há dados
+    if all(val == 0 for val in valores):
+        fig = go.Figure()
+        fig.update_layout(
+            annotations=[
+                dict(
+                    text="Sem dados suficientes para gerar o gráfico.",
+                    xref="paper", yref="paper",
+                    x=0.5, y=0.5,
+                    showarrow=False,
+                    font=dict(size=14, color="#2c3e50")
+                )
+            ],
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            paper_bgcolor="#f4faf4",
+            plot_bgcolor="#f4faf4",
+            height=200
+        )
+        return fig
 
     fig = px.pie(
         names=categorias,
