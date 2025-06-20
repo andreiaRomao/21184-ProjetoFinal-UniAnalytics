@@ -167,7 +167,7 @@ def display_page(pathname, search):
     
     elif pathname == "/dashboards/dashboardAluno":
         if user_role in ["aluno", "admin"]:
-            return dashboardAluno.layout(user_id, course_id)
+            return dashboardAluno.layout(user_id)
         return html.Div("Acesso não autorizado.")
 
     elif pathname == "/dashboards/dashboardProfessor":
@@ -201,4 +201,5 @@ if __name__ == '__main__':
     formularioPos.register_callbacks(app)
     dashboardPre.register_callbacks(app)
     dashboardPos.register_callbacks(app)
+    dashboardAluno.register_callbacks(app)
     app.run(debug=True, host="0.0.0.0", port=8050)
