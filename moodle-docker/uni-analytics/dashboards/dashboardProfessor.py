@@ -1,4 +1,4 @@
-from dash import html, dcc
+from dash import html, dcc, Input, Output, State
 from dash_iconify import DashIconify
 import queries.queriesProfessor as qp
 import queries.queriesComuns as qg
@@ -16,17 +16,19 @@ from utils.logger import logger
 # Funções de lógica modular
 # =========================
 
-def normalizar_nome_item(texto):
-    logger.debug("normalizar_nome_item: recebido texto=%r", texto)
-    if not texto:
+def normalizar_itemname(nome):
+    if not isinstance(nome, str):
+        logger.warning(f"[NORMALIZAR] Nome inválido (não string): {nome}")
         return ""
-    texto = ''.join(
-        c for c in unicodedata.normalize('NFD', texto)
-        if unicodedata.category(c) != 'Mn'
-    )
-    texto = texto.lower()
-    texto = texto.replace('-', ' ').replace('_', ' ').strip()
-    return texto
+    
+    nome_original = nome
+    # Remove acentuação
+    nome = unicodedata.normalize("NFKD", nome).encode("ASCII", "ignore").decode("utf-8")
+    nome = nome.lower()
+    nome = re.sub(r'[^a-z0-9]', '', nome)
+    
+    logger.debug(f"[NORMALIZAR] '{nome_original}' normalizado para '{nome}'")
+    return nome
 
 def alunos_inscritos_uc(cursos, course_id):
     logger.debug("alunos_inscritos_uc: filtrando cursos para course_id=%s", course_id)
@@ -46,8 +48,8 @@ def filtrar_alunos_avaliacao_continua(cursos, course_id):
     estudantes['grupo'] = estudantes['group_name'].fillna('').str.lower()
     return estudantes[estudantes['grupo'].str.contains('aval')]['user_id'].unique()
 
-def contar_conteudos_publicados(dados, professor_id, course_id):
-    logger.debug("contar_conteudos_publicados: professor %s, course_id %s", professor_id, course_id)
+def contar_conteudos_publicados(dados, user_id, course_id):
+    logger.debug("contar_conteudos_publicados: professor %s, course_id %s", user_id, course_id)
     tipos = {
         'resource': 'Ficheiros', 'page': 'Páginas', 'url': 'Links',
         'book': 'Livros', 'folder': 'Pastas', 'quiz': 'Quizzes', 'lesson': 'Lições'
@@ -61,21 +63,21 @@ def contar_conteudos_publicados(dados, professor_id, course_id):
     logger.debug("contagem de conteúdos publicada: %r", contagem)
     return contagem
 
-def contar_topicos_respostas_professor(dados, professor_id, course_id):
-    logger.debug("contar_topicos_respostas_professor: professor %s, course_id %s", professor_id, course_id)
-    criados = sum(1 for d in dados if d['user_id'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'topic')
-    respondidos = sum(1 for d in dados if d['user_id'] == professor_id and d['course_id'] == course_id and d['post_type'] == 'reply')
+def contar_topicos_respostas_professor(dados, user_id, course_id):
+    logger.debug("contar_topicos_respostas_professor: professor %s, course_id %s", user_id, course_id)
+    criados = sum(1 for d in dados if d['user_id'] == user_id and d['course_id'] == course_id and d['post_type'] == 'topic')
+    respondidos = sum(1 for d in dados if d['user_id'] == user_id and d['course_id'] == course_id and d['post_type'] == 'reply')
     logger.debug("tópicos criados=%d, respondidos=%d", criados, respondidos)
     return criados, respondidos
 
-def calcular_velocidade_resposta(posts, professor_id, course_id):
-    logger.debug("calcular_velocidade_resposta: professor %s, course_id %s", professor_id, course_id)
+def calcular_velocidade_resposta(posts, user_id, course_id):
+    logger.debug("calcular_velocidade_resposta: professor %s, course_id %s", user_id, course_id)
     posts_curso = [p for p in posts if p["course_id"] == course_id]
     posts_aluno = [p for p in posts_curso if "student" in (p.get("role") or "").lower()]
     tempos_resposta = []
     for post_aluno in posts_aluno:
         tempo_post = datetime.fromtimestamp(post_aluno["time_created"])
-        respostas_professor = [p for p in posts_curso if p.get("parent") == post_aluno["post_id"] and p["user_id"] == professor_id]
+        respostas_professor = [p for p in posts_curso if p.get("parent") == post_aluno["post_id"] and p["user_id"] == user_id]
         if respostas_professor:
             tempo_resposta = datetime.fromtimestamp(min(respostas_professor, key=lambda p: p["time_created"])["time_created"])
             delta = (tempo_resposta - tempo_post).total_seconds() / (3600 * 24)
@@ -89,9 +91,9 @@ def calcular_velocidade_resposta(posts, professor_id, course_id):
     logger.debug("nenhuma resposta encontrada para cálculo de velocidade")
     return None
 
-def calcular_media_acessos_semanal(acessos, professor_id, course_id):
-    logger.debug("calcular_media_acessos_semanal: professor %s, course_id %s", professor_id, course_id)
-    acessos_prof = [a for a in acessos if a["user_id"] == professor_id and a["course_id"] == course_id]
+def calcular_media_acessos_semanal(acessos, user_id, course_id):
+    logger.debug("calcular_media_acessos_semanal: professor %s, course_id %s", user_id, course_id)
+    acessos_prof = [a for a in acessos if a["user_id"] == user_id and a["course_id"] == course_id]
     semanas = defaultdict(int)
     for a in acessos_prof:
         dt = a["access_time"]
@@ -115,7 +117,8 @@ def calcular_distribuicao_desempenho_global_professor(completions, cursos, cours
         notas_aluno = completions_df[
             (completions_df['user_id']==aluno_id)&(completions_df['course_id']==course_id)&(completions_df['module_type']=='assign')]
         for _, l in notas_aluno.iterrows():
-            if "efolio" in (l.get("item_name") or "").lower():
+            nome_item = normalizar_itemname(l.get("item_name") or "")
+            if "efolio" in nome_item:
                 try: soma += float(l["final_grade"])
                 except: continue
         categoria = "Crítico" if soma < 3.5 else "Em Risco" if soma < 4.5 else "Expectável"
@@ -152,9 +155,9 @@ def extrair_ano_letivo(course_name):
     logger.debug("ano letivo não encontrado em course_name")
     return None
 
-def obter_ultimo_acesso_uc(acessos, professor_id, course_id):
-    logger.debug("obter_ultimo_acesso_uc: professor %s, course_id %s", professor_id, course_id)
-    acessos_prof = [a for a in acessos if a["user_id"] == professor_id and a["course_id"] == course_id]
+def obter_ultimo_acesso_uc(acessos, user_id, course_id):
+    logger.debug("obter_ultimo_acesso_uc: professor %s, course_id %s", user_id, course_id)
+    acessos_prof = [a for a in acessos if a["user_id"] == user_id and a["course_id"] == course_id]
     if not acessos_prof:
         logger.debug("nenhum acesso encontrado")
         return "—"
@@ -183,7 +186,7 @@ def calcular_medias_efolios(completions, cursos, course_id):
         nota_a = nota_b = nota_c = 0.0
 
         for _, row in notas_aluno.iterrows():
-            nome = normalizar_nome_item(row.get("item_name"))
+            nome = normalizar_itemname(row.get("item_name"))
             nota = float(row.get("final_grade") or 0)
 
             if "efolioa" in nome.replace(" ", ""):
@@ -230,7 +233,7 @@ def calcular_taxa_conclusao_efolios(completions, cursos, course_id):
         estado_aluno_a = estado_aluno_b = estado_aluno_c = 0
 
         for _, row in notas_aluno.iterrows():
-            nome = normalizar_nome_item(row.get("item_name") or "")
+            nome = normalizar_itemname(row.get("item_name") or "")
             nome_sanitizado = nome.replace(" ", "")
             completion = int(row.get("completion_state") or 0)
 
@@ -306,11 +309,11 @@ def calcular_taxa_conclusao_formativas(completions, cursos, course_id):
     logger.debug("calcular_taxa_conclusao_formativas: média final=%s", media_final)
     return media_final
 
-def calcular_ultima_participacao_forum(posts, professor_id, course_id):
-    logger.debug("calcular_ultima_participacao_forum: início para professor_id=%s, course_id=%s", professor_id, course_id)
+def calcular_ultima_participacao_forum(posts, user_id, course_id):
+    logger.debug("calcular_ultima_participacao_forum: início para user_id=%s, course_id=%s", user_id, course_id)
     posts_professor = [
         p for p in posts
-        if p["user_id"] == professor_id and p["course_id"] == course_id
+        if p["user_id"] == user_id and p["course_id"] == course_id
     ]
     if not posts_professor:
         logger.debug("calcular_ultima_participacao_forum: sem participações")
@@ -374,7 +377,6 @@ def bloco_conclusao_linha(nome, valor_gauge, labels, dados_conclusao):
     ])
 
 def gerar_gauge_dashboard_professor(titulo, valor, cor):
-    logger.debug("gerar_gauge_dashboard_professor: titulo=%s, valor=%s, cor=%s", titulo, valor, cor)
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=valor,
@@ -394,25 +396,165 @@ def gerar_gauge_dashboard_professor(titulo, valor, cor):
 
     return dcc.Graph(figure=fig, config={"displayModeBar": False})
 
+def obter_opcoes_dropdown_cursos(user_id):
+    try:
+        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
+        cursos_user = cursos[cursos['user_id'] == user_id].copy()
+
+        # Extrair o ano letivo de cada course_name
+        cursos_user['ano_letivo'] = cursos_user['course_name'].apply(extrair_ano_letivo)
+
+        # Determinar o ano letivo mais recente (atual)
+        anos_validos = sorted(cursos_user['ano_letivo'].dropna().unique())
+        if not anos_validos:
+            return []
+        ano_atual = anos_validos[-1]
+
+        # Filtrar apenas as do ano atual
+        cursos_filtrados = cursos_user[cursos_user['ano_letivo'] == ano_atual]
+
+        # Extrai uc_id para evitar duplicados
+        cursos_filtrados['uc_id'] = cursos_filtrados['course_name'].str.extract(r'(\d{5})')
+
+        # Ordenar e eliminar duplicados por uc_id
+        cursos_ordenados = cursos_filtrados.sort_values(by="course_name", ascending=False)
+        cursos_unicos = cursos_ordenados.drop_duplicates(subset=["uc_id"])
+
+        opcoes = [
+            {"label": linha['course_name'], "value": linha['course_id']}
+            for _, linha in cursos_unicos.iterrows()
+        ]
+
+        logger.debug(f"[Dropdown] Ano letivo atual: {ano_atual}, opções: {opcoes}")
+        return opcoes
+
+    except Exception as e:
+        logger.error("[ERRO] (obter_opcoes_dropdown_cursos):", exc_info=True)
+        return []
+
+def atualizar_topo_info_professor(novo_course_id, user_id):
+    nome, papel, nome_curso = get_dashboard_top_info(user_id, novo_course_id)
+    return f"[{papel}] {nome}", nome_curso
+
+def atualizar_dashboard_professor(course_id, user_id):
+    try:
+        dados_conteudos = qp.fetch_conteudos_disponibilizados_local()
+        contagem = contar_conteudos_publicados(dados_conteudos, user_id, course_id)
+
+        dados_forum = qg.fetch_all_forum_posts_local()
+        dados_cursos = qg.fetch_all_user_course_data_local()
+        topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, user_id, course_id)
+        velocidade = calcular_velocidade_resposta(dados_forum, user_id, course_id)
+        ultima_participacao = calcular_ultima_participacao_forum(dados_forum, user_id, course_id)
+
+        dados_acessos = qp.fetch_course_access_logs_local()
+        media_acessos = calcular_media_acessos_semanal(dados_acessos, user_id, course_id)
+        ultimo_acesso = obter_ultimo_acesso_uc(dados_acessos, user_id, course_id)
+
+        dados_completions = qg.fetch_all_grade_progress_local()
+        dados_medias = calcular_medias_efolios(dados_completions, dados_cursos, course_id)
+        distribuicao = calcular_distribuicao_desempenho_global_professor(dados_completions, dados_cursos, course_id)
+
+        taxa_conclusao = calcular_taxa_conclusao_efolios(dados_completions, dados_cursos, course_id)
+        taxa_conclusao_formativas = calcular_taxa_conclusao_formativas(dados_completions, dados_cursos, course_id)
+
+        return html.Div(children=[
+            html.Div(children=[
+                html.H2("Informação Geral do Docente", style={
+                    "fontSize": "26px",
+                    "fontWeight": "bold",
+                    "color": "#2c3e50",
+                    "marginBottom": "8px",
+                    "text-align": "center"
+                })
+            ]),
+
+            html.Div(children=[
+                html.H3("Docente - Nível de Interação", className="dashboard-aluno-professor-titulo")
+            ]),
+
+            html.Div(className="dashboard-professor-linha3colunas", children=[
+                html.Div(className="dashboard-professor-coluna", children=[
+                    render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
+                ]),
+                html.Div(className="dashboard-professor-coluna", children=[
+                    render_card_acessos(media_acessos, ultimo_acesso)
+                ]),
+                html.Div(className="dashboard-professor-coluna", children=[
+                    render_conteudos_publicados(contagem)
+                ])
+            ]),
+
+            html.Div(children=[
+                html.H3("Alunos - Desempenho", className="dashboard-aluno-professor-titulo")
+            ]),
+
+            render_card_conclusoes_gauge({
+                "avaliativas": taxa_conclusao["media"],
+                "formativas": taxa_conclusao_formativas
+            }),
+
+            render_card_mini_graficos(
+                dados_medias,
+                distribuicao
+            )
+        ])
+    except Exception as e:
+        logger.error("[ERRO] atualizar_dashboard_professor: %s", e, exc_info=True)
+        return html.Div("Erro ao carregar os dados do dashboard.")
+
+def register_callbacks(app):
+    @app.callback(
+        Output("info_nome_utilizador_professor", "children"),
+        Output("info_nome_curso_professor", "children"),
+        Input("dropdown_uc_professor", "value"),
+        State("store_user_id_professor", "data")
+    )
+    def atualizar_topo_info_professor(novo_course_id, user_id):
+        nome, papel, nome_curso = get_dashboard_top_info(user_id, novo_course_id)
+        return f"[{papel}] {nome}", nome_curso
+
+    @app.callback(
+        Output("conteudo_dashboard_professor", "children"),
+        Input("dropdown_uc_professor", "value"),
+        State("store_user_id_professor", "data")
+    )
+    def callback_dashboard_professor(course_id, user_id):
+        return atualizar_dashboard_professor(course_id, user_id)
+
 # =========================
 # Layout principal
 # =========================
 
-def layout(professor_id, course_id):
+def layout(user_id):
     try:
+        cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
+        cursos_user = cursos[cursos['user_id'] == user_id].copy()
+
+        cursos_user['ano_letivo'] = cursos_user['course_name'].apply(extrair_ano_letivo)
+        anos_validos = sorted(cursos_user['ano_letivo'].dropna().unique())
+        ano_atual = anos_validos[-1] if anos_validos else None
+
+        cursos_user['uc_id'] = cursos_user['course_name'].str.extract(r'(\d{5})')
+        cursos_ordenados = cursos_user.sort_values(by="course_name", ascending=False)
+        cursos_unicos = cursos_ordenados.drop_duplicates(subset=["uc_id"])
+        cursos_ano_atual = cursos_unicos[cursos_unicos['ano_letivo'] == ano_atual]
+
+        course_id = cursos_ano_atual['course_id'].values[0] if not cursos_ano_atual.empty else None
+
         dados_conteudos = qp.fetch_conteudos_disponibilizados_local()
-        contagem = contar_conteudos_publicados(dados_conteudos, professor_id, course_id)
+        contagem = contar_conteudos_publicados(dados_conteudos, user_id, course_id)
 
         dados_forum = qg.fetch_all_forum_posts_local()
-        dados_cursos = qg.fetch_all_user_course_data_local() 
+        dados_cursos = qg.fetch_all_user_course_data_local()
 
-        topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, professor_id, course_id)
-        velocidade = calcular_velocidade_resposta(dados_forum, professor_id, course_id)
-        ultima_participacao = calcular_ultima_participacao_forum(dados_forum, professor_id, course_id)
+        topicos_criados, topicos_respondidos = contar_topicos_respostas_professor(dados_forum, user_id, course_id)
+        velocidade = calcular_velocidade_resposta(dados_forum, user_id, course_id)
+        ultima_participacao = calcular_ultima_participacao_forum(dados_forum, user_id, course_id)
 
         dados_acessos = qp.fetch_course_access_logs_local()
-        media_acessos = calcular_media_acessos_semanal(dados_acessos, professor_id, course_id)
-        ultimo_acesso = obter_ultimo_acesso_uc(dados_acessos, professor_id, course_id)
+        media_acessos = calcular_media_acessos_semanal(dados_acessos, user_id, course_id)
+        ultimo_acesso = obter_ultimo_acesso_uc(dados_acessos, user_id, course_id)
 
         dados_completions = qg.fetch_all_grade_progress_local()
         dados_medias = calcular_medias_efolios(dados_completions, dados_cursos, course_id)
@@ -427,53 +569,74 @@ def layout(professor_id, course_id):
         return html.Div("Erro ao ligar à base de dados.")
 
     return html.Div(children=[
-        render_topo_geral(professor_id, course_id),
-
-        html.Div(children=[
-            html.H2("Informação Geral do Docente", style={
-                "fontSize": "26px",
-                "fontWeight": "bold",
-                "color": "#2c3e50",
-                "marginBottom": "8px",
-                "text-align": "center"
-            })
-        ]),
-
-        html.Div(
-            children=[
-                html.H3("Docente - Nível de Interação", className="dashboard-aluno-professor-titulo")
-            ],
-            style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}
-        ),
-
-        html.Div(className="dashboard-professor-linha3colunas", children=[
-            html.Div(className="dashboard-professor-coluna", children=[
-                render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
+        dcc.Store(id="store_user_id_professor", data=user_id),
+        html.Div(className="topo-dashboard", children=[
+            html.Div(className="linha-superior", children=[
+                html.Div(className="info-utilizador", children=[
+                    DashIconify(
+                        icon="mdi:teach",
+                        width=32,
+                        color="#2c3e50",
+                        className="avatar-icon"
+                    ),
+                    html.Span(id="info_nome_utilizador_professor", className="nome-utilizador")
+                ]),
+                html.Div(className="dropdown-curso", children=[
+                    dcc.Dropdown(
+                        id="dropdown_uc_professor",
+                        options=obter_opcoes_dropdown_cursos(user_id),
+                        value=course_id,
+                        clearable=False,
+                        className="dropdown-uc-selector"
+                    )
+                ])
             ]),
-            html.Div(className="dashboard-professor-coluna", children=[
-                render_card_acessos(media_acessos, ultimo_acesso)
-            ]),
-            html.Div(className="dashboard-professor-coluna", children=[
-                render_conteudos_publicados(contagem)
+            html.Div(className="barra-uc", children=[
+                html.Span(id="info_nome_curso_professor", className="nome-curso"),
+                html.Span(extrair_ano_letivo(get_dashboard_top_info(user_id, course_id)[2]) or "", className="ano-letivo")
             ])
         ]),
 
-        html.Div(
-            children=[
+        html.Div(id="conteudo_dashboard_professor", children=[
+            html.Div(children=[
+                html.H2("Informação Geral do Docente", style={
+                    "fontSize": "26px",
+                    "fontWeight": "bold",
+                    "color": "#2c3e50",
+                    "marginBottom": "8px",
+                    "text-align": "center"
+                })
+            ]),
+            html.Div(children=[
+                html.H3("Docente - Nível de Interação", className="dashboard-aluno-professor-titulo")
+            ], style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}),
+
+            html.Div(className="dashboard-professor-linha3colunas", children=[
+                html.Div(className="dashboard-professor-coluna", children=[
+                    render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
+                ]),
+                html.Div(className="dashboard-professor-coluna", children=[
+                    render_card_acessos(media_acessos, ultimo_acesso)
+                ]),
+                html.Div(className="dashboard-professor-coluna", children=[
+                    render_conteudos_publicados(contagem)
+                ])
+            ]),
+
+            html.Div(children=[
                 html.H3("Alunos - Desempenho", className="dashboard-aluno-professor-titulo")
-            ],
-            style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}
-        ),
+            ], style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}),
 
-        render_card_conclusoes_gauge({
-            "avaliativas": taxa_conclusao["media"],
-            "formativas": taxa_conclusao_formativas
-        }),
+            render_card_conclusoes_gauge({
+                "avaliativas": taxa_conclusao["media"],
+                "formativas": taxa_conclusao_formativas
+            }),
 
-        render_card_mini_graficos(
-            dados_medias,
-            distribuicao
-        )
+            render_card_mini_graficos(
+                dados_medias,
+                distribuicao
+            )
+        ])
     ])
 
 # =========================
@@ -575,7 +738,8 @@ def render_card_medias_classificacao(dados):
         height=200,
         yaxis=dict(autorange="reversed"),
         paper_bgcolor="white",
-        plot_bgcolor="white"
+        plot_bgcolor="white",
+        autosize=True  
     )
 
     return html.Div(className="card-bloco", children=[
@@ -587,7 +751,13 @@ def render_card_medias_classificacao(dados):
                 className="tooltip-text"
             )
         ]),
-        dcc.Graph(figure=fig, config={"displayModeBar": False}, style={"height": "160px"})
+        html.Div(style={"width": "100%", "height": "100%"}, children=[
+            dcc.Graph(
+                figure=fig,
+                config={"displayModeBar": False, "responsive": True},  # Adicionado "responsive"
+                style={"width": "100%"}  # Garantia de largura completa
+            )
+        ])
     ])
 
 def render_card_mini_graficos(medias, distribuicao):
@@ -643,11 +813,11 @@ def render_topo_geral(user_id, course_id):
                     color="#2c3e50",
                     className="avatar-icon"
                 ),
-                html.Span(f"[{papel}] {nome}", className="nome-utilizador")
+                html.Span(id="info_nome_utilizador_professor", className="nome-utilizador")
             ])
         ]),
         html.Div(className="barra-uc", children=[
-            html.Span(curso, className="nome-curso"),
+            html.Span(id="info_nome_curso_professor", className="nome-curso"),
             html.Span(ano_curso_atual, className="ano-letivo")
         ])
     ])

@@ -81,8 +81,6 @@ def display_page(pathname, search):
     if not user_id or not user_role:
         return login.layout()
 
-    course_id = 2  # Fixo por agora
-
     # Extrair item_id da query string (se existir)
     query_params = parse_qs(search[1:]) if search else {}
     item_id = int(query_params.get("item_id", [0])[0])  # Usa 0 por omissão
@@ -97,14 +95,14 @@ def display_page(pathname, search):
         if user_role == "admin":
             links_dash.extend([
                 dcc.Link("→ Administração de Formulários", href="/forms/formularioAdmin", className="btn-suave"),
-                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
+                dcc.Link("→ Dashboard Grau de Confiança", href="/dashboards/dashboardPre", className="btn-suave"),
+                dcc.Link("→ Dashboard Reflexão sobre a Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
             ])
         elif user_role == "professor":
             links_dash.extend([
                 dcc.Link("→ Dashboard Professor", href="/dashboards/dashboardProfessor", className="btn-suave"),
-                dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
-                dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
+                dcc.Link("→ Dashboard Grau de Confiança", href="/dashboards/dashboardPre", className="btn-suave"),
+                dcc.Link("→ Dashboard Reflexão sobre a Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
             ])
         elif user_role == "aluno":
             links_dash = [
@@ -125,8 +123,8 @@ def display_page(pathname, search):
 
             if resultado and resultado[0] and "continua" in resultado[0].lower():
                 links_dash.extend([
-                    dcc.Link("→ Dashboard Pré-Avaliação", href="/dashboards/dashboardPre", className="btn-suave"),
-                    dcc.Link("→ Dashboard Pós-Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
+                    dcc.Link("→ Dashboard Grau de Confiança", href="/dashboards/dashboardPre", className="btn-suave"),
+                    dcc.Link("→ Dashboard Reflexão sobre a Avaliação", href="/dashboards/dashboardPos", className="btn-suave")
                 ])
 
             blocos_formularios = [formularioMain.listar_formularios_disponiveis(user_id)]
@@ -172,7 +170,7 @@ def display_page(pathname, search):
 
     elif pathname == "/dashboards/dashboardProfessor":
         if user_role in ["professor", "admin"]:
-            return dashboardProfessor.layout(user_id, course_id)
+            return dashboardProfessor.layout(user_id)
         return html.Div("Acesso não autorizado.")
 
     elif pathname == "/dashboards/dashboardPre":
@@ -202,4 +200,5 @@ if __name__ == '__main__':
     dashboardPre.register_callbacks(app)
     dashboardPos.register_callbacks(app)
     dashboardAluno.register_callbacks(app)
+    dashboardProfessor.register_callbacks(app)
     app.run(debug=True, host="0.0.0.0", port=8050)
