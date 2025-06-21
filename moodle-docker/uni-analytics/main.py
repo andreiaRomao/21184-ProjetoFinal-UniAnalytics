@@ -89,6 +89,22 @@ def display_page(pathname, search):
         links_dash = []
         blocos_formularios = []
 
+        # Obter nome diretamente da base de dados local
+        if user_role == "admin":
+            nome_utilizador = "Admin"
+        else:
+            conn = connect_to_uni_analytics_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT name
+                FROM course_data
+                WHERE user_id = ?
+                LIMIT 1
+            """, (user_id,))
+            resultado_nome = cursor.fetchone()
+            conn.close()
+            nome_utilizador = resultado_nome[0] if resultado_nome and resultado_nome[0] else "Utilizador"
+
         # Dashboards
         if user_role != "admin":
             links_dash.append(dcc.Link("→ Dashboard Geral", href="/dashboards/dashboardGeral", className="btn-suave"))
@@ -135,7 +151,7 @@ def display_page(pathname, search):
         # Layout da página principal
         return html.Div([
             html.Div([
-                html.Div("Bem-vindo ao Dashboard de Learning Analytics", className="dashboard-pre-titulo", style={"marginLeft": "250px"}),
+                html.Div(f"Bem-vindo {nome_utilizador}", className="dashboard-pre-titulo", style={"marginLeft": "250px"}),
             ], style={"marginTop": "30px"}),
         
             html.Div(
