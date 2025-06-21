@@ -81,6 +81,9 @@ def classificar_aluno(grupo, notas):
 def calcular_estatisticas_por_ano(completions, cursos):
     logger.debug("Início do cálculo de estatísticas por ano.")
 
+    completions = completions.copy()
+    cursos = cursos.copy()
+
     completions['item_name'] = completions['item_name'].apply(normalizar_itemname)
     cursos['ano_letivo'] = cursos['course_name'].apply(extrair_ano_letivo)
 

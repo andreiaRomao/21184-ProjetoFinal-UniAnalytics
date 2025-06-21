@@ -12,6 +12,10 @@ from datetime import datetime
 from collections import defaultdict 
 from utils.logger import logger
 
+import warnings
+warnings.simplefilter("always", pd.errors.SettingWithCopyWarning)
+pd.options.mode.chained_assignment = "warn"
+
 # =========================
 # Funções de lógica modular
 # =========================
@@ -411,7 +415,7 @@ def obter_opcoes_dropdown_cursos(user_id):
         ano_atual = anos_validos[-1]
 
         # Filtrar apenas as do ano atual
-        cursos_filtrados = cursos_user[cursos_user['ano_letivo'] == ano_atual]
+        cursos_filtrados = cursos_user[cursos_user['ano_letivo'] == ano_atual].copy()
 
         # Extrai uc_id para evitar duplicados
         cursos_filtrados['uc_id'] = cursos_filtrados['course_name'].str.extract(r'(\d{5})')
@@ -540,7 +544,7 @@ def layout(user_id):
 
         cursos_user['uc_id'] = cursos_user['course_name'].str.extract(r'(\d{5})')
         cursos_ordenados = cursos_user.sort_values(by="course_name", ascending=False)
-        cursos_unicos = cursos_ordenados.drop_duplicates(subset=["uc_id"])
+        cursos_unicos = cursos_ordenados.drop_duplicates(subset=["uc_id"]).copy()
         cursos_ano_atual = cursos_unicos[cursos_unicos['ano_letivo'] == ano_atual]
 
         course_id = cursos_ano_atual['course_id'].values[0] if not cursos_ano_atual.empty else None

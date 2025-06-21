@@ -314,10 +314,9 @@ def layout():
                     html.Span(
                         "Mostra a perceção dos alunos quanto à utilidade da sessão síncrona anterior ao e-fólio.\n"
                         "As categorias incluem:\n"
-                        "- Muito útil\n"
-                        "- Útil, mas com lacunas\n"
-                        "- Não foi útil\n"
-                        "- Ainda não se realizou",
+                        "- Útil\n"
+                        "- Não aplicável\n"
+                        "- Não foi útil",
                         className="tooltip-text"
                     )
                 ]),

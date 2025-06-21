@@ -194,7 +194,7 @@ def obter_opcoes_dropdown_cursos(user_id):
         ano_atual = anos_validos[-1]
 
         # Filtrar apenas as do ano atual
-        cursos_filtrados = cursos_user[cursos_user['ano_letivo'] == ano_atual]
+        cursos_filtrados = cursos_user[cursos_user['ano_letivo'] == ano_atual].copy()
 
         # Extrai uc_id para evitar duplicados
         cursos_filtrados['uc_id'] = cursos_filtrados['course_name'].str.extract(r'(\d{5})')
