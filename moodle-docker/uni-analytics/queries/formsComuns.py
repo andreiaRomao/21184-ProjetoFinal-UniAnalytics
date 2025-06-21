@@ -39,21 +39,23 @@ def pre_pos_obter_course_id_e_total_respostas(item_id):
 
     query = """
         SELECT 
-          (SELECT course_id FROM efolios WHERE item_id = ?) AS course_id,
-          (SELECT COUNT(DISTINCT student_id) 
-           FROM forms_student_answers 
-           WHERE form_type = 'pre' AND item_id = ?) AS total_respostas;
+            (SELECT course_id FROM efolios WHERE item_id = ?) AS course_id,
+            form_type,
+            COUNT(DISTINCT student_id) AS total_respostas
+        FROM forms_student_answers
+        WHERE item_id = ?
+        GROUP BY form_type;;
     """
     cursor.execute(query, (item_id, item_id))
-    row = cursor.fetchone()
+    rows = cursor.fetchall()
     conn.close()
 
-    if row:
-        course_id, total_respostas = row
-        return course_id, total_respostas
+    if rows:
+        # Retorna uma lista de tuplos (course_id, form_type, total_respostas)
+        return rows
     else:
-        return None, 0
-
+        return []
+    
 # Função para obter dados locais de Efolios
 def fetch_all_efolios_local():
     conn = connect_to_uni_analytics_db()
