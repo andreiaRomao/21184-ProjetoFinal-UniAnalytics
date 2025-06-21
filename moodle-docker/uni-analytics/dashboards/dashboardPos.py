@@ -7,6 +7,8 @@ import queries.queriesComuns as qg
 from utils.logger import logger
 import queries.formsPos as qpos
 import queries.formsComuns as qfcomuns
+from db.uniAnalytics import connect_to_uni_analytics_db
+import re
 
 
 # =========================
@@ -21,6 +23,7 @@ def register_callbacks(app):
         return obter_opcoes_dropdown_pos()
 
     @app.callback(
+        Output("barra_superior_formulario_pos", "children"),
         Output("grafico_confianca_pos", "figure"),
         Output("grafico_horas_pos", "figure"),
         Output("grafico_expectativa", "children"),
@@ -39,6 +42,7 @@ def register_callbacks(app):
         valores_abr = get_valores_reais_abrangencia(item_id)
         valores_sin = get_valores_reais_sincrona(item_id)
         return (
+            render_barra_uc_form(item_id),
             render_grafico_confianca_pos(item_id),
             render_grafico_horas_pos(valores_horas),
             render_grafico_expectativa(valores_exp),
@@ -78,6 +82,15 @@ def obter_opcoes_dropdown_pos():
     except Exception as e:
         logger.exception("[DASHBOARD_POS] Erro ao carregar opções para dropdown")
         return [], None
+
+def extrair_ano_letivo(course_name):
+    match = re.search(r'_(\d{2})', course_name)
+    if match:
+        sufixo = int(match.group(1))
+        ano_inicio = 2000 + sufixo
+        return f"{ano_inicio}/{ano_inicio + 1}"
+    return None
+
 
 def get_total_respostas_info_reais(item_id):
     try:
@@ -209,9 +222,14 @@ def get_valores_reais_sincrona(item_id):
 def layout():
 
     return html.Div([
-        html.Div([
-            dcc.Dropdown(id="dropdown_item_pos", placeholder="Seleciona o e-Fólio", className="dashboard-pre-dropdown")
-        ], className="dashboard-pre-dropdown-wrapper"),
+        html.Div(className="topo-dashboard", children=[
+            html.Div(className="linha-superior", children=[
+                html.Div(style={"marginLeft": "auto"}, children=[
+                    dcc.Dropdown(id="dropdown_item_pos", placeholder="Seleciona o e-Fólio", className="dashboard-pre-dropdown")
+                ])
+            ]),
+            html.Div(id="barra_superior_formulario_pos")  # novo ID para evitar conflito
+        ]),
 
         html.H2("Reflexão sobre a avaliação", className="dashboard-pre-subsecao"),
         html.Div(id="info_total_respostas_pos"),
@@ -655,3 +673,30 @@ def render_grafico_sincrona(valores_dict):
 def render_total_respostas_info_reais(item_id):
     texto = get_total_respostas_info_reais(item_id)
     return html.P(texto, className="dashboard-pre-info-respostas")
+
+def render_barra_uc_form(item_id):
+    logger.debug(f"[DASHBOARD_POS] Renderizando barra UC para item_id: {item_id}")
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT name, course_name
+        FROM efolios
+        WHERE item_id = ?
+        LIMIT 1
+    """, (item_id,))
+    resultado = cursor.fetchone()
+    conn.close()
+
+    logger.debug(f"[DASHBOARD_POS] Resultado da consulta: {resultado}")
+    if not resultado:
+        logger.warning(f"[DASHBOARD_POS] Nenhum e-fólio encontrado para item_id: {item_id}")
+        return None
+
+    nome_efolio, nome_curso = resultado
+    texto_esquerda = f"{nome_curso} - {nome_efolio}"
+    texto_direita = extrair_ano_letivo(nome_curso)
+
+    return html.Div(className="barra-uc", children=[
+        html.Span(texto_esquerda, className="nome-curso"),
+        html.Span(texto_direita, className="ano-letivo")
+    ])

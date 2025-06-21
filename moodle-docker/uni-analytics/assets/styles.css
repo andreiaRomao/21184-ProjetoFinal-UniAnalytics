@@ -334,6 +334,10 @@ body {
     background-color: #d3b8ff;
 }
 
+.bg-lightblue {
+    background-color: #5dade2; 
+}
+
 .bg-pink {
     background-color: #f7b6d2; 
 }
@@ -1198,11 +1202,20 @@ textarea::placeholder {
   text-align: center;
 }
 
+.dashboard-pre-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px 0 0 0;
+  gap: 8px;
+}
+
 .dashboard-pre-dropdown {
   width: 100%;
-  max-width: 320px;
+  max-width: 320px; 
+  min-width: 300px; 
   padding: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-family: 'Segoe UI', sans-serif;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -1212,9 +1225,11 @@ textarea::placeholder {
 }
 
 .dashboard-pre-dropdown-wrapper {
-  position: relative; 
-  z-index: 10;
-  margin-bottom: 20px;  
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 0 20px 10px 20px;  /* ⬅ padding horizontal + inferior */
+  box-sizing: border-box;
 }
 
 .dashboard-pre-dropdown .Select-control,

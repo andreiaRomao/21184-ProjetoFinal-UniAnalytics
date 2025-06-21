@@ -6,7 +6,9 @@ from datetime import datetime
 import queries.queriesComuns as qg
 import queries.formsPre as qpre
 import queries.formsComuns as qfcomuns
+import re
 from utils.logger import logger
+from db.uniAnalytics import connect_to_uni_analytics_db
 
 # =========================
 # DADOS MARTELADOS APAGAR!!!!
@@ -33,6 +35,7 @@ def register_callbacks(app):
         return obter_opcoes_dropdown_pre()
 
     @app.callback(
+        Output("barra_superior_formulario", "children"),
         Output("grafico_confianca_preparacao", "figure"),
         Output("grafico_horas_preparacao", "figure"),
         Output("grafico_acessibilidade", "children"),
@@ -49,6 +52,7 @@ def register_callbacks(app):
         valores_assert = get_valores_reais_assertividade(item_id)
         valores_ativ = get_valores_reais_atividades(item_id)
         return (
+            render_barra_uc_form(item_id),
             render_grafico_confianca_pre(item_id), 
             render_grafico_horas_preparacao(valores_horas),
             render_grafico_acessibilidade(valores_aces),
@@ -87,6 +91,14 @@ def obter_opcoes_dropdown_pre():
     except Exception as e:
         logger.exception("[DASHBOARD_PRE] Erro ao carregar opções para dropdown")
         return [], None
+
+def extrair_ano_letivo(course_name):
+    match = re.search(r'_(\d{2})', course_name)
+    if match:
+        sufixo = int(match.group(1))
+        ano_inicio = 2000 + sufixo
+        return f"{ano_inicio}/{ano_inicio + 1}"
+    return None
 
 def get_total_respostas_info_reais(item_id):
     try:
@@ -155,7 +167,7 @@ def get_valores_reais_atividades(item_id):
 
     # Mapeamento dos nomes longos para os curtos desejados
     legenda_curta = {
-        "Parcialmente úteis - correção": "Correção incorreta",
+        "Parcialmente úteis - correção": "Correção incompleta",
         "Parcialmente úteis - desatualizadas": "Desatualizadas",
         "Muito úteis": "Muito úteis",
         "Parcialmente úteis - lacunas": "Lacunas de informação",
@@ -182,9 +194,14 @@ def layout():
 
     return html.Div([
 
-        html.Div([
-            dcc.Dropdown(id="dropdown_item", placeholder="Seleciona o e-Fólio", className="dashboard-pre-dropdown")
-        ], className="dashboard-pre-dropdown-wrapper"),
+        html.Div(className="topo-dashboard", children=[
+            html.Div(className="linha-superior", children=[
+                html.Div(style={"marginLeft": "auto"}, children=[
+                    dcc.Dropdown(id="dropdown_item", placeholder="Seleciona o e-Fólio", className="dashboard-pre-dropdown")
+                ])
+            ]),
+            html.Div(id="barra_superior_formulario")
+        ]),
 
         html.H2("Grau de Confiança Pré-Efólio", className="dashboard-pre-subsecao"),
         html.Div(id="info_total_respostas_pre"),
@@ -261,7 +278,7 @@ def layout():
                         "Mostra a utilidade percebida das atividades formativas realizadas antes do e-fólio.\n"
                         "As categorias incluem:\n"
                         "- Muito úteis\n"
-                        "- Correção incorreta\n"
+                        "- Correção incompleta\n"
 						"- Desatualizadas\n"
 						"- Lacunas de informação\n"
                         "- Não realizou",
@@ -470,7 +487,7 @@ def render_grafico_recursos(valores_dict):
 
 def render_grafico_atividades(valores_dict):
     categorias = [
-        "Correção incorreta",
+        "Correção imcompleta",
         "Desatualizadas",
         "Muito úteis",
         "Lacunas de informação",
@@ -577,3 +594,30 @@ def render_grafico_sessao_sincrona_pre(valores_dict):
 def render_total_respostas_info_reais(item_id):
     texto = get_total_respostas_info_reais(item_id)
     return html.P(texto, className="dashboard-pre-info-respostas")
+
+def render_barra_uc_form(item_id):
+    logger.debug(f"[DASHBOARD_PRE] Renderizando barra UC para item_id: {item_id}")
+    conn = connect_to_uni_analytics_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT name, course_name
+        FROM efolios
+        WHERE item_id = ?
+        LIMIT 1
+    """, (item_id,))
+    resultado = cursor.fetchone()
+    conn.close()
+
+    logger.debug(f"[DASHBOARD_PRE] Resultado da consulta: {resultado}")
+    if not resultado:
+        logger.warning(f"[DASHBOARD_PRE] Nenhum e-fólio encontrado para item_id: {item_id}")
+        return None
+
+    nome_efolio, nome_curso = resultado
+    texto_esquerda = f"{nome_curso} - {nome_efolio}"
+    texto_direita = extrair_ano_letivo(nome_curso)
+
+    return html.Div(className="barra-uc", children=[
+        html.Span(texto_esquerda, className="nome-curso"),
+        html.Span(texto_direita, className="ano-letivo")
+    ])

@@ -52,7 +52,7 @@ def contar_conteudos_publicados(dados, user_id, course_id):
     logger.debug("contar_conteudos_publicados: professor %s, course_id %s", user_id, course_id)
     tipos = {
         'resource': 'Ficheiros', 'page': 'Páginas', 'url': 'Links',
-        'book': 'Livros', 'folder': 'Pastas', 'quiz': 'Quizzes', 'lesson': 'Lições'
+        'book': 'Livros', 'folder': 'Pastas', 'quiz': 'Quizzes', 'lesson': 'Lições', 'forum': 'Fóruns' , 'scorm': 'Conteudos Publicados'
     }
     contagem = {nome: 0 for nome in tipos.values()}
     for d in dados:
@@ -436,6 +436,9 @@ def atualizar_topo_info_professor(novo_course_id, user_id):
     nome, papel, nome_curso = get_dashboard_top_info(user_id, novo_course_id)
     return f"[{papel}] {nome}", nome_curso
 
+def contar_foruns_disponibilizados(dados, course_id):
+    return sum(1 for d in dados if d["course_id"] == course_id and d["module_type"] == "forum")
+
 def atualizar_dashboard_professor(course_id, user_id):
     try:
         dados_conteudos = qp.fetch_conteudos_disponibilizados_local()
@@ -475,10 +478,10 @@ def atualizar_dashboard_professor(course_id, user_id):
 
             html.Div(className="dashboard-professor-linha3colunas", children=[
                 html.Div(className="dashboard-professor-coluna", children=[
-                    render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
+                    render_card_acessos(media_acessos, ultimo_acesso)
                 ]),
                 html.Div(className="dashboard-professor-coluna", children=[
-                    render_card_acessos(media_acessos, ultimo_acesso)
+                    render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
                 ]),
                 html.Div(className="dashboard-professor-coluna", children=[
                     render_conteudos_publicados(contagem)
@@ -613,10 +616,10 @@ def layout(user_id):
 
             html.Div(className="dashboard-professor-linha3colunas", children=[
                 html.Div(className="dashboard-professor-coluna", children=[
-                    render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
+                    render_card_acessos(media_acessos, ultimo_acesso)
                 ]),
                 html.Div(className="dashboard-professor-coluna", children=[
-                    render_card_acessos(media_acessos, ultimo_acesso)
+                    render_card_forum(topicos_criados, topicos_respondidos, velocidade, ultima_participacao)
                 ]),
                 html.Div(className="dashboard-professor-coluna", children=[
                     render_conteudos_publicados(contagem)
@@ -652,9 +655,10 @@ def render_conteudos_publicados(contagem):
         "Pastas": "mdi:folder-outline",
         "Quizzes": "mdi:clipboard-outline",
         "Lições": "mdi:book-education-outline",
+        "Fóruns": "mdi:forum-outline" ,
         "Conteúdos Multimédia": "mdi:video-box" 
     }
-    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-pink"]
+    cores = ["bg-yellow", "bg-green", "bg-darkgreen", "bg-blue", "bg-orange", "bg-teal", "bg-purple", "bg-lightblue","bg-pink"]
 
     return html.Div(className="card card-volume", children=[
         html.Div(className="tooltip-bloco", children=[
@@ -684,33 +688,33 @@ def render_conteudos_publicados(contagem):
 def render_card_forum(criados, respondidos, velocidade, ultima_participacao):
     return html.Div(className="card dashboard-professor-card-forum", children=[
         html.Div(className="tooltip-bloco", children=[
-            html.H4("Fórum - Tópicos", className="tooltip-hover dashboard-professor-card-title"),
+            html.H4("Fórum", className="tooltip-hover dashboard-professor-card-title"),
             html.Span(
                 "Mostra a participação do docente nos fóruns da UC.\n"
-                "- Criados: tópicos iniciados pelo professor\n"
-                "- Respondidos: respostas dadas a mensagens dos alunos\n"
-                "- Velocidade de Resposta: tempo médio entre uma questão de aluno e a resposta do professor\n"
+                "- Tópicos Criados: tópicos iniciados pelo professor\n"
+                "- Tópicos Respondidos: respostas dadas a mensagens dos alunos\n"
+                "- Tempo de Resposta: tempo médio entre uma questão de aluno e a resposta do professor\n"
                 "- Última Participação: data e hora da última interação no fórum",
                 className="tooltip-text"
             )
         ]),
         html.Div(className="dashboard-professor-forum-box", children=[
-            html.Div(className="dashboard-professor-forum-item dashboard-professor-forum-item-criados", children=[
+            html.Div(className="dashboard-professor-forum-item", children=[
                 DashIconify(icon="mdi:email-outline", width=28, color="white"),
-                html.Div("Criados", className="dashboard-professor-forum-label"),
+                html.Div("Tópicos Criados", className="dashboard-professor-forum-label"),
                 html.Div(str(criados), className="dashboard-professor-forum-numero")
             ]),
-            html.Div(className="dashboard-professor-forum-item dashboard-professor-forum-item-respondidos", children=[
+            html.Div(className="dashboard-professor-forum-item", children=[
                 DashIconify(icon="mdi:email-send-outline", width=28, color="white"),
-                html.Div("Respondidos", className="dashboard-professor-forum-label"),
+                html.Div("Tópicos Respondidos", className="dashboard-professor-forum-label"),
                 html.Div(str(respondidos), className="dashboard-professor-forum-numero")
             ]),
-            html.Div(className="dashboard-professor-forum-item dashboard-professor-forum-item-velocidade", children=[
+            html.Div(className="dashboard-professor-forum-item", children=[
                 DashIconify(icon="mdi:clock-outline", width=28, color="white"),
-                html.Div("Velocidade de Resposta", className="dashboard-professor-forum-label"),
+                html.Div("Tempo de Resposta", className="dashboard-professor-forum-label"),
                 html.Div(velocidade if velocidade is not None else "—", className="dashboard-professor-forum-numero")
             ]),
-            html.Div(className="dashboard-professor-forum-item dashboard-professor-forum-item-participacao", children=[
+            html.Div(className="dashboard-professor-forum-item", children=[
                 DashIconify(icon="mdi:account-arrow-right-outline", width=28, color="white"),
                 html.Div("Última Participação", className="dashboard-professor-forum-label"),
                 html.Div(ultima_participacao, className="dashboard-professor-forum-numero")
@@ -828,21 +832,21 @@ def render_card_acessos(media_acessos, ultimo_acesso):
             html.H4("Acessos ao Curso", className="tooltip-hover dashboard-professor-card-title"),
             html.Span(
                 "Mostra os padrões de acesso do professor ao curso no Moodle.\n"
-                "- Média de acessos (semanal): número médio de vezes que o professor acede à área do curso por semana\n"
-                "- Último Acesso: data do acesso mais recente registado",
+                "- Último Acesso: data do acesso mais recente registado\n"
+                "- Média de acessos (semanal): número médio de vezes que o professor acede à área do curso por semana",
                 className="tooltip-text"
             )
         ]),
         html.Div(className="dashboard-professor-acessos-box", children=[
             html.Div(className="dashboard-professor-acesso-item", children=[
-                DashIconify(icon="mdi:account-clock-outline", width=28, color="white"),
-                html.Div("Média de acessos (semanal)", className="dashboard-professor-acesso-label"),
-                html.Div(f"{int(round(media_acessos))} acessos/semana", className="dashboard-professor-acesso-numero")
-            ]),
-            html.Div(className="dashboard-professor-acesso-item dashboard-professor-acesso-item-claro", children=[
                 DashIconify(icon="mdi:calendar-clock", width=28, color="white"),
                 html.Div("Último Acesso", className="dashboard-professor-acesso-label"),
                 html.Div(ultimo_acesso, className="dashboard-professor-acesso-numero")
+            ]),
+            html.Div(className="dashboard-professor-acesso-item", children=[
+                DashIconify(icon="mdi:account-clock-outline", width=28, color="white"),
+                html.Div("Média de acessos (semanal)", className="dashboard-professor-acesso-label"),
+                html.Div(f"{int(round(media_acessos))} acessos/semana", className="dashboard-professor-acesso-numero")
             ])
         ])
     ])

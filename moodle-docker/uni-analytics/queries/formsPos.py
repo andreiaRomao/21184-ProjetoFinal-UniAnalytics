@@ -198,7 +198,7 @@ def pos_sessao_sincrona_qualidade(item_id):
                 CASE a.answer_id
                     WHEN 67 THEN 'Muito útil'
                     WHEN 68 THEN 'Útil, mas com lacunas'
-                    WHEN 69 THEN 'Não existiu'
+                    WHEN 69 THEN 'Não aplicável'
                     WHEN 70 THEN 'Não foi útil'
                     ELSE 'Outro'
                 END AS qualidade_sessao_sincrona,
