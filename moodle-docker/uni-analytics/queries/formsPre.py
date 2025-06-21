@@ -24,6 +24,9 @@ from utils.logger import logger
 | 14          | Foi fácil encontrar e aceder aos recursos e atividades no Moodle?                            | 44          | A navegação foi simples e os conteúdos estavam bem organizados e acessíveis.                                            |
 | 14          | Foi fácil encontrar e aceder aos recursos e atividades no Moodle?                            | 45          | Consegui encontrar o essencial, mas a estrutura podia ser mais clara e intuitiva.                                       |
 | 14          | Foi fácil encontrar e aceder aos recursos e atividades no Moodle?                            | 46          | Tive bastante dificuldade em localizar os conteúdos – a estrutura não era clara e/ou a navegação parecia desorganizada. |
+| 22          | Relativamente á sessão síncrona de apoio a este módulo da matéria, como a avalias?           | 71          | Foi útil, esclareceu alguns pontos, mas deixou dúvidas importantes por esclarecer e/ou poderia ter sido mais aprofundada.|
+| 22          | Relativamente á sessão síncrona de apoio a este módulo da matéria, como a avalias?           | 72          | Ainda não existiu sessão síncrona de apoio.                                                                             |
+| 22          | Relativamente á sessão síncrona de apoio a este módulo da matéria, como a avalias?           | 73          | Não foi útil – os temas abordados não ajudaram a entender a matéria, foi confusa ou senti que houve falta de preparação.|
 """
 
 def pre_confianca_preparacao(item_id):
@@ -206,3 +209,34 @@ def pre_obter_course_id_e_total_respostas(item_id):
         return course_id, total_respostas
     else:
         return None, 0
+
+def pre_sessao_sincrona_avaliacao(item_id):
+    try:
+        conn = connect_to_uni_analytics_db()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT 
+                e.item_id,
+                e.name AS item_name,
+                CASE a.answer_id
+                    WHEN 71 THEN 'Útil'
+                    WHEN 72 THEN 'Não aplicável'
+                    WHEN 73 THEN 'Não foi útil'
+                    ELSE 'Outro'
+                END AS avaliacao_sessao,
+                COUNT(*) AS total_respostas
+            FROM forms_student_answers a
+            JOIN efolios e ON a.item_id = e.item_id
+            WHERE a.question_id = 22
+              AND a.form_type = 'pre'
+              AND a.item_id = ?
+            GROUP BY e.item_id, e.name, avaliacao_sessao
+            ORDER BY e.item_id, avaliacao_sessao;
+        """
+        logger.debug(f"[QUERY] pre_sessao_sincrona_avaliacao: {query.strip()} com item_id={item_id}")
+        cursor.execute(query, (item_id,))
+        return cursor.fetchall()
+    except Exception as e:
+        logger.exception("[ADMIN] Erro ao listar respostas pre_sessao_sincrona_avaliacao")
+        return []

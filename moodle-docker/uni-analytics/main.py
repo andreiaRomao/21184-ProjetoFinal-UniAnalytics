@@ -91,7 +91,7 @@ def display_page(pathname, search):
 
         # Obter nome diretamente da base de dados local
         if user_role == "admin":
-            nome_utilizador = "Admin"
+            nome_utilizador = "Administrador"
         else:
             conn = connect_to_uni_analytics_db()
             cursor = conn.cursor()

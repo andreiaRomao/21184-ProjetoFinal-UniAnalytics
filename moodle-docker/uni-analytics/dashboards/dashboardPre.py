@@ -51,6 +51,7 @@ def register_callbacks(app):
         valores_aces = get_valores_reais_acessibilidade(item_id) 
         valores_assert = get_valores_reais_assertividade(item_id)
         valores_ativ = get_valores_reais_atividades(item_id)
+        valores_ss_pre = get_valores_reais_sessao_sincrona_pre(item_id)
         return (
             render_barra_uc_form(item_id),
             render_grafico_confianca_pre(item_id), 
@@ -58,7 +59,7 @@ def register_callbacks(app):
             render_grafico_acessibilidade(valores_aces),
             render_grafico_recursos(valores_assert),
             render_grafico_atividades(valores_ativ),
-            render_grafico_sessao_sincrona_pre(get_valores_martelados_sessao_sincrona_pre()),
+            render_grafico_sessao_sincrona_pre(valores_ss_pre),
             render_total_respostas_info_reais(item_id)
         )
 
@@ -183,6 +184,21 @@ def get_valores_reais_atividades(item_id):
             contagem[categoria_curta] += total
 
     logger.debug(f"[DASHBOARD_PRE] Atividades (mapeado): {contagem}")
+    return contagem
+
+def get_valores_reais_sessao_sincrona_pre(item_id):
+    dados = qpre.pre_sessao_sincrona_avaliacao(item_id)
+    ordem_desejada = [
+        "Útil",
+        "Não aplicável",
+        "Não foi útil"
+    ]
+    contagem = {cat: 0 for cat in ordem_desejada}
+
+    for _, _, categoria, total in dados:
+        contagem[categoria] = total
+
+    logger.debug(f"[DASHBOARD_PRE] Sessão síncrona: {contagem}")
     return contagem
 
 
@@ -534,37 +550,23 @@ def render_grafico_atividades(valores_dict):
 
 def render_grafico_sessao_sincrona_pre(valores_dict):
     categorias = [
-        "Muito útil",
-        "Útil, mas com lacunas",
-        "Não foi útil",
-        "Ainda não se realizou"
+        "Útil",
+        "Não aplicável",
+        "Não foi útil"
     ]
-    cores = ["#90ee90", "#ffd700", "#f08080", "#d3d3d3"]
-    valores = [valores_dict.get(cat, 0) for cat in categorias]
+    cores = ["#d3d3d3", "#ffe066", "#8cd17d"]
 
-    # Verifica se há dados
-    if all(val == 0 for val in valores):
-        fig = go.Figure()
-        fig.update_layout(
-            annotations=[
-                dict(
-                    text="Sem dados suficientes para gerar o gráfico.",
-                    xref="paper", yref="paper",
-                    x=0.5, y=0.5,
-                    showarrow=False,
-                    font=dict(size=14, color="#2c3e50")
-                )
-            ],
-            xaxis=dict(visible=False),
-            yaxis=dict(visible=False),
-            paper_bgcolor="#f4faf4",
-            plot_bgcolor="#f4faf4",
-            height=200
-        )
-        return fig
+    # Filtrar apenas categorias com valores > 0
+    categorias_filtradas = [cat for cat in categorias if valores_dict.get(cat, 0) > 0]
+    valores = [valores_dict[cat] for cat in categorias_filtradas]
+    cores = [cores[categorias.index(cat)] for cat in categorias_filtradas]
+
+    # Se não houver dados válidos
+    if not categorias_filtradas:
+        return html.Div("Sem dados suficientes para gerar o gráfico.", style={"textAlign": "center", "padding": "20px"})
 
     fig = px.pie(
-        names=categorias,
+        names=categorias_filtradas,
         values=valores,
         hole=0.4,
         color_discrete_sequence=cores
@@ -582,14 +584,15 @@ def render_grafico_sessao_sincrona_pre(valores_dict):
     legenda = html.Div(className="dashboard-pre-legenda-2colunas", children=[
         html.Div([
             html.Span(style={"backgroundColor": cores[i]}, className="dashboard-pre-legenda-cor"),
-            html.Span(categorias[i])
-        ], className="dashboard-pre-legenda-item") for i in range(len(categorias))
+            html.Span(categorias_filtradas[i])
+        ], className="dashboard-pre-legenda-item") for i in range(len(categorias_filtradas))
     ])
 
     return html.Div(style={"backgroundColor": "#f4faf4", "padding": "8px 12px", "minHeight": "300px"}, children=[
         dcc.Graph(figure=fig, config={"displayModeBar": False}),
         legenda
     ])
+
 
 def render_total_respostas_info_reais(item_id):
     texto = get_total_respostas_info_reais(item_id)
