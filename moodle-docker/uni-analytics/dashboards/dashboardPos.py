@@ -64,8 +64,13 @@ def obter_opcoes_dropdown_pos():
         df['start_date'] = pd.to_datetime(df['start_date'])
         df['end_date'] = pd.to_datetime(df['end_date'])
         df['ano_letivo'] = df['start_date'].dt.year
-        ano_mais_recente = df['ano_letivo'].max()
+        hoje = pd.Timestamp.now()
 
+        # Apenas incluir e-fólios cujo período de disponibilização POS já passou (end_date + 5 dias)
+        df = df[df['end_date'] + pd.Timedelta(days=5) <= hoje]
+
+        # Selecionar apenas do ano letivo mais recente
+        ano_mais_recente = df['ano_letivo'].max()
         logger.debug(f"[DASHBOARD_POS] Ano letivo mais recente: {ano_mais_recente}")
         df_filtrado = df[df['ano_letivo'] == ano_mais_recente]
 

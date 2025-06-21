@@ -41,7 +41,7 @@ def get_layout(pathname, user_id, item_id):
     now = datetime.now()
 
     if pathname == "/forms/formularioPre":
-        janela_inicio = start_date - timedelta(days=7)
+        janela_inicio = start_date - timedelta(days=5)
         janela_fim = start_date
         if not (janela_inicio <= now <= janela_fim):
             logger.warning(f"[Router] Fora da janela do formulário pré para item_id={item_id}.")
@@ -51,7 +51,7 @@ def get_layout(pathname, user_id, item_id):
 
     elif pathname == "/forms/formularioPos":
         janela_inicio = end_date
-        janela_fim = end_date + timedelta(days=7)
+        janela_fim = end_date + timedelta(days=5)
         if not (janela_inicio <= now <= janela_fim):
             logger.warning(f"[Router] Fora da janela do formulário pós para item_id={item_id}.")
             return html.Div("O formulário de pós-avaliação só está disponível na semana após o fim do e-fólio.")

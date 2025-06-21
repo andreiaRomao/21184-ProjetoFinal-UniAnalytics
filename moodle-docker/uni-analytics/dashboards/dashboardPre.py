@@ -74,8 +74,13 @@ def obter_opcoes_dropdown_pre():
         df['start_date'] = pd.to_datetime(df['start_date'])
         df['end_date'] = pd.to_datetime(df['end_date'])
         df['ano_letivo'] = df['start_date'].dt.year
-        ano_mais_recente = df['ano_letivo'].max()
+        hoje = pd.Timestamp.now()
 
+        # Apenas incluir e-fólios cujo start_date já passou
+        df = df[df['start_date'] <= hoje]
+
+        # Selecionar apenas do ano letivo mais recente
+        ano_mais_recente = df['ano_letivo'].max()
         logger.debug(f"[DASHBOARD_PRE] Ano letivo mais recente: {ano_mais_recente}")
         df_filtrado = df[df['ano_letivo'] == ano_mais_recente]
 
