@@ -259,7 +259,7 @@ def pos_obter_course_id_e_total_respostas(item_id):
           (SELECT course_id FROM efolios WHERE item_id = ?) AS course_id,
           (SELECT COUNT(DISTINCT student_id) 
            FROM forms_student_answers 
-           WHERE form_type = 'pre' AND item_id = ?) AS total_respostas;
+           WHERE form_type = 'pos' AND item_id = ?) AS total_respostas;
     """
     cursor.execute(query, (item_id, item_id))
     row = cursor.fetchone()

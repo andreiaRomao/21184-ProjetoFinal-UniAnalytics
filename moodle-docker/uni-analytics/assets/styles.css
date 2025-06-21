@@ -33,6 +33,14 @@ body {
     margin-bottom: 30px;
 }
 
+.dashboard-titulo-geral {
+    font-size: 26px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
 /* ===============================
    ÁREA DO GRÁFICO
    =============================== */

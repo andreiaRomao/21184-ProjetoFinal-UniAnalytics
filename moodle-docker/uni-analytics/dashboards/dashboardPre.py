@@ -108,9 +108,13 @@ def extrair_ano_letivo(course_name):
 
 def get_total_respostas_info_reais(item_id):
     try:
-        course_id, total_respostas = qfcomuns.pre_pos_obter_course_id_e_total_respostas(item_id)
-        if not course_id:
+        resultados = qfcomuns.pre_pos_obter_course_id_e_total_respostas(item_id)
+        if not resultados:
             return "Curso não encontrado."
+
+        course_id = resultados[0][0]
+        contagens = {linha[1]: linha[2] for linha in resultados}
+        total_respostas = contagens.get('pre', 0)
 
         df_utilizadores = pd.DataFrame(qg.fetch_all_user_course_data_local())
 

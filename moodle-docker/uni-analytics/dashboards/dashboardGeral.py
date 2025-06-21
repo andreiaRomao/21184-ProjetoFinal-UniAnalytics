@@ -352,7 +352,7 @@ def layout(user_id):
                 ])
             ]),
 
-            html.H3("Informação Geral da Unidade Curricular", className="dashboard-geral-titulo"),
+            html.H3("Informação Geral da Unidade Curricular", className="dashboard-titulo-geral"),
 
             html.Div(className="linha-flex", children=[
                 html.Div(className="coluna-esquerda", children=[

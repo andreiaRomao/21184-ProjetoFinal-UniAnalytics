@@ -467,13 +467,7 @@ def atualizar_dashboard_professor(course_id, user_id):
 
         return html.Div(children=[
             html.Div(children=[
-                html.H2("Informação Geral do Docente", style={
-                    "fontSize": "26px",
-                    "fontWeight": "bold",
-                    "color": "#2c3e50",
-                    "marginBottom": "8px",
-                    "text-align": "center"
-                })
+                html.H2("Informação Geral do Docente", className="dashboard-titulo-geral")
             ]),
 
             html.Div(children=[
@@ -606,17 +600,11 @@ def layout(user_id):
 
         html.Div(id="conteudo_dashboard_professor", children=[
             html.Div(children=[
-                html.H2("Informação Geral do Docente", style={
-                    "fontSize": "26px",
-                    "fontWeight": "bold",
-                    "color": "#2c3e50",
-                    "marginBottom": "8px",
-                    "text-align": "center"
-                })
+                html.H2("Informação Geral do Docente", className="dashboard-titulo-geral")
             ]),
             html.Div(children=[
                 html.H3("Docente - Nível de Interação", className="dashboard-aluno-professor-titulo")
-            ], style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}),
+            ]),
 
             html.Div(className="dashboard-professor-linha3colunas", children=[
                 html.Div(className="dashboard-professor-coluna", children=[
@@ -632,7 +620,7 @@ def layout(user_id):
 
             html.Div(children=[
                 html.H3("Alunos - Desempenho", className="dashboard-aluno-professor-titulo")
-            ], style={"marginTop": "0px", "paddingTop": "0px", "marginBottom": "0px", "paddingBottom": "0px"}),
+            ]),
 
             render_card_conclusoes_gauge({
                 "avaliativas": taxa_conclusao["media"],
@@ -762,8 +750,8 @@ def render_card_medias_classificacao(dados):
         html.Div(style={"width": "100%", "height": "100%"}, children=[
             dcc.Graph(
                 figure=fig,
-                config={"displayModeBar": False, "responsive": True},  # Adicionado "responsive"
-                style={"width": "100%"}  # Garantia de largura completa
+                config={"displayModeBar": False, "responsive": True}, 
+                style={"width": "100%"}  
             )
         ])
     ])

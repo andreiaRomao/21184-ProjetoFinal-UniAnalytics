@@ -44,7 +44,7 @@ def pre_pos_obter_course_id_e_total_respostas(item_id):
             COUNT(DISTINCT student_id) AS total_respostas
         FROM forms_student_answers
         WHERE item_id = ?
-        GROUP BY form_type;;
+        GROUP BY form_type;
     """
     cursor.execute(query, (item_id, item_id))
     rows = cursor.fetchall()
