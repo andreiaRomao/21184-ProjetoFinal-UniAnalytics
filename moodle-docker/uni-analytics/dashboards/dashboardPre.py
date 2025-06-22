@@ -11,18 +11,6 @@ from utils.logger import logger
 from db.uniAnalytics import connect_to_uni_analytics_db
 
 # =========================
-# DADOS MARTELADOS APAGAR!!!!
-# ========================
-
-def get_valores_martelados_sessao_sincrona_pre():
-    return {
-        "Muito útil": 35,
-        "Útil, mas com lacunas": 18,
-        "Não foi útil": 4,
-        "Ainda não se realizou": 12
-    }
-
-# =========================
 # Funções de lógica modular
 # ========================
 
