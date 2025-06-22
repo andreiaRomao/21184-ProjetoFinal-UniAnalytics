@@ -71,8 +71,8 @@ def init_uni_analytics_db():
             userid INTEGER NOT NULL,
             course_id INTEGER NOT NULL,
             tipo_interacao TEXT NOT NULL,
-            timecreated DATETIME NOT NULL,
-            lastrefreshdatetime DATETIME
+            time_created DATETIME NOT NULL,
+            time_updated DATETIME
         );
     """)
 
