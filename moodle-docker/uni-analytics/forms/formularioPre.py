@@ -120,7 +120,7 @@ def register_callbacks(app):
                 dcc.RadioItems(
                     id={"type": "resposta-pos", "index": etapa},
                     options=opcoes,
-                    value=respostas.get(str(pergunta_id)) if str(pergunta_id) in respostas else None,
+                    value=respostas.get(str(pergunta_id)) if str(pergunta_id) in respostas else (opcoes[0]["value"] if opcoes else None),
                     className="radio-dropdown",
                     labelStyle={"display": "block"}
                 )
