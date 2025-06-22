@@ -302,10 +302,10 @@ def layout(user_id):
     try:
         dados_completions = pd.DataFrame(qg.fetch_all_grade_progress_local())
         dados_cursos = pd.DataFrame(qg.fetch_all_user_course_data_local())
-        
+
         dropdown_cursos = obter_opcoes_dropdown_cursos(user_id)
         course_id_inicial = dropdown_cursos[0]['value'] if dropdown_cursos else None
-        
+
         linhas_por_ano, pie_por_ano, inscritos_por_ano = calcular_estatisticas_por_ano(dados_completions, dados_cursos)
 
         store_data = {
@@ -321,7 +321,7 @@ def layout(user_id):
         ano_curso_atual = extrair_ano_letivo(curso) or ""
         dropdown_cursos = obter_opcoes_dropdown_cursos(user_id)
 
-        return html.Div(className="dashboard-geral", children=[
+        return html.Div(children=[
             dcc.Store(id="store_dados_grafico", data=store_data),
             dcc.Store(id="store_user_id", data=user_id),
 
@@ -352,51 +352,71 @@ def layout(user_id):
                 ])
             ]),
 
-            html.H3("Informação Geral da Unidade Curricular", className="dashboard-titulo-geral"),
+            html.Div(className="dashboard-geral", children=[
+                html.H3("Informação Geral da Unidade Curricular", className="dashboard-titulo-geral"),
 
-            html.Div(className="linha-flex", children=[
-                html.Div(className="coluna-esquerda", children=[
-                    html.Div(className="card bg-verde-suave", children=[
-                        html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="card-section-title"),
-                        dcc.Graph(
-                            id="grafico_linhas",
-                            figure=construir_figura_linhas(linhas_por_ano, ano_inicial),
-                            config={"displayModeBar": False},
-                            className="dashboard-geral-grafico"
-                        )
+                html.Div(className="linha-flex", children=[
+                    html.Div(className="coluna-esquerda", children=[
+                        html.Div(className="card bg-verde-suave", children=[
+                            html.Div(className="tooltip-bloco", children=[
+                                html.H4("Taxa de Aprovação/reprovação nos últimos 5 anos", className="tooltip-hover card-section-title"),
+                                html.Span(
+                                    "Mostra a evolução da taxa de aprovação e reprovação dos alunos nos últimos 5 anos letivos.",
+                                    className="tooltip-text"
+                                )
+                            ]),
+                            dcc.Graph(
+                                id="grafico_linhas",
+                                figure=construir_figura_linhas(linhas_por_ano, ano_inicial),
+                                config={"displayModeBar": False},
+                                className="dashboard-geral-grafico"
+                            )
+                        ])
+                    ]),
+                    html.Div(className="coluna-direita", children=[
+                        html.Div(className="card bg-verde-suave", children=[
+                            html.Div(className="tooltip-bloco", children=[
+                                html.Div(className="dashboard-geral-dropdown-barra", children=[
+                                    html.H4("Taxa de Aprovação por tipo de avaliação", className="tooltip-hover card-section-title"),
+                                    dcc.Dropdown(
+                                        id="dropdown_ano",
+                                        options=[{"label": ano, "value": ano} for ano in pie_por_ano.keys()],
+                                        value=ano_inicial,
+                                        clearable=False,
+                                        className="dropdown-uc-selector"
+                                    )
+                                ]),
+                                html.Span(
+                                    "Mostra a distribuição da taxa de aprovação por tipo de avaliação (e-fólios, exames, recurso) para o ano letivo selecionado.",
+                                    className="tooltip-text"
+                                )
+                            ]),
+                            dcc.Graph(
+                                id="grafico_pie",
+                                figure=construir_figura_pie(pie_por_ano, ano_inicial),
+                                config={"displayModeBar": False},
+                                className="dashboard-geral-grafico"
+                            )
+                        ])
                     ])
                 ]),
-                html.Div(className="coluna-direita", children=[
+
+                html.Div(className="dashboard-geral-grafico-inscritos-wrapper", children=[
                     html.Div(className="card bg-verde-suave", children=[
-                        html.Div(className="dashboard-geral-dropdown-barra", children=[
-                            html.H4("Taxa de Aprovação por tipo de avaliação", className="card-section-title"),
-                            dcc.Dropdown(
-                                id="dropdown_ano",
-                                options=[{"label": ano, "value": ano} for ano in pie_por_ano.keys()],
-                                value=ano_inicial,
-                                clearable=False,
-                                className="dropdown-uc-selector"
+                        html.Div(className="tooltip-bloco", children=[
+                            html.H4("Evolução do número de inscritos por ano letivo", className="tooltip-hover card-section-title"),
+                            html.Span(
+                                "Mostra como evoluiu o número de estudantes inscritos na unidade curricular nos últimos anos letivos.",
+                                className="tooltip-text"
                             )
                         ]),
                         dcc.Graph(
-                            id="grafico_pie",
-                            figure=construir_figura_pie(pie_por_ano, ano_inicial),
+                            id="grafico_linhas_inscritos",
+                            figure=construir_figura_linhas_inscritos(inscritos_por_ano, ano_inicial),
                             config={"displayModeBar": False},
                             className="dashboard-geral-grafico"
                         )
                     ])
-                ])
-            ]),
-
-            html.Div(className="dashboard-geral-grafico-inscritos-wrapper", children=[
-                html.Div(className="card bg-verde-suave", children=[
-                    html.H4("Evolução do número de inscritos por ano letivo", className="card-section-title"),
-                    dcc.Graph(
-                        id="grafico_linhas_inscritos",
-                        figure=construir_figura_linhas_inscritos(inscritos_por_ano, ano_inicial),
-                        config={"displayModeBar": False},
-                        className="dashboard-geral-grafico"
-                    )
                 ])
             ])
         ])
@@ -404,6 +424,7 @@ def layout(user_id):
         print("[ERRO] (layout) Falha ao gerar o dashboard geral.")
         traceback.print_exc()
         return html.Div("Erro ao carregar o dashboard geral.")
+
 
 # =========================
 # Funções de construção de gráficos
