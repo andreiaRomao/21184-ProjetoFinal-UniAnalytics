@@ -118,7 +118,7 @@ def register_callbacks(app):
                 ),
                 html.Label(pergunta_atual["texto"]),
                 dcc.RadioItems(
-                    id={"type": "resposta-pos", "index": etapa},
+                    id={"type": "resposta-pre", "index": etapa},
                     options=opcoes,
                     value=respostas.get(str(pergunta_id)) if str(pergunta_id) in respostas else (opcoes[0]["value"] if opcoes else None),
                     className="radio-dropdown",
